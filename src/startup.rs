@@ -1,4 +1,5 @@
 use actix_web::{dev::Server, web, App, HttpServer};
+use tracing_actix_web::TracingLogger;
 
 use crate::{configuration::Settings, routes::health_check};
 
@@ -18,6 +19,7 @@ impl Application {
     pub fn get_server(&self) -> Result<Server, anyhow::Error>{
         let server = HttpServer::new(|| {
             App::new()
+                .wrap(TracingLogger::default())
                 .route("/health", web::get().to(health_check))
         })
         .bind((self.host.as_str(), self.port))?
