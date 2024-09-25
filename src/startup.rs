@@ -1,7 +1,9 @@
+use std::net::TcpListener;
+
 use actix_web::{dev::Server, web, App, HttpServer};
 use tracing_actix_web::TracingLogger;
 
-use crate::{configuration::Settings, routes::health_check};
+use crate::{configuration::ApplicationSettings, routes::health_check};
 
 pub struct Application{
     pub host: String,
@@ -9,20 +11,25 @@ pub struct Application{
 }
 
 impl Application {
-    pub fn new(settings: Settings) -> Self{
+    pub fn new(settings: ApplicationSettings) -> Self{
         Application{
             host: settings.host,
             port: settings.port
         }
     }
 
-    pub fn get_server(&self) -> Result<Server, anyhow::Error>{
+    pub fn get_server(&mut self) -> Result<Server, anyhow::Error>{
+        let listener = TcpListener::bind(format!("{}:{}", self.host, self.port))?;
+
+        self.port = listener.local_addr()?
+                        .port();
+
         let server = HttpServer::new(|| {
             App::new()
                 .wrap(TracingLogger::default())
                 .route("/health", web::get().to(health_check))
         })
-        .bind((self.host.as_str(), self.port))?
+        .listen(listener)?
         .run();
 
         Ok(server)

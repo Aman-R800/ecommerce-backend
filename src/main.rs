@@ -7,7 +7,7 @@ async fn main() -> anyhow::Result<()>{
 
     let config = Settings::get();
 
-    let application = Application::new(config);
+    let mut application = Application::new(config.application);
     application.get_server()?.await?;
     Ok(())
 }
