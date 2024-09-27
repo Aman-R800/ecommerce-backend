@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, net::TcpListener};
 
 use diesel::{pg::Pg, r2d2::ConnectionManager, Connection, PgConnection, RunQueryDsl};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
@@ -6,6 +6,7 @@ use ecommerce::{configuration::{DatabaseSettings, Settings}, startup::Applicatio
 use once_cell::sync::Lazy;
 use r2d2::Pool;
 use uuid::Uuid;
+use wiremock::MockServer;
 
 static LOGGER_INSTANCE: Lazy<()> = Lazy::new(|| {
     let log_level = "info".to_string();
@@ -34,7 +35,8 @@ fn run_migrations(connection: &mut impl MigrationHarness<Pg>)
 pub struct TestApp{
     pub host: String,
     pub port: u16,
-    pub pool: DbPool
+    pub pool: DbPool,
+    pub email_api: MockServer
 }
 
 impl TestApp {
@@ -63,9 +65,12 @@ impl TestApp {
     pub async fn spawn_app() -> TestApp{
         Lazy::force(&LOGGER_INSTANCE);
 
+        let email_api = MockServer::start().await;
+
         let mut settings = Settings::get();
         settings.application.port = 0;
         settings.database.name = Uuid::new_v4().to_string();
+        settings.email.api_uri = email_api.uri();
 
         let pool = TestApp::create_db(&settings.database);
 
@@ -74,12 +79,30 @@ impl TestApp {
                             .await
                             .expect("Failed to build application");
 
+
         tokio::task::spawn(application.server);
 
         return TestApp{
             host: application.host,
             port: application.port,
-            pool 
+            pool,
+            email_api
         }
     }
+
+    pub fn get_confirmation_link(&self, text: &str) -> String{
+        let links: Vec<_> = linkify::LinkFinder::new()
+                    .links(text)
+                    .filter(|l| *l.kind() == linkify::LinkKind::Url)
+                    .collect();
+        assert_eq!(links.len(), 1);
+        let raw_link = links[0].as_str().to_owned();
+        let mut confirmation_link = reqwest::Url::parse(&raw_link).unwrap();
+
+        assert_eq!(confirmation_link.host_str().unwrap(), "localhost");
+        confirmation_link.set_port(Some(self.port)).unwrap();
+
+        confirmation_link.to_string()
+    }
+
 }

@@ -6,3 +6,5 @@ pub mod utils;
 pub mod schema;
 pub mod models;
 pub mod password;
+pub mod email_client;
+pub mod domain;

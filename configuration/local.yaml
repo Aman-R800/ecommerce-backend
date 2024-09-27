@@ -8,3 +8,8 @@ database:
 
 redis:
   host: "localhost"
+
+email:
+  api_uri: "http://localhost:5000/"
+  sender: "test@gmail.com"
+  key: "fake-key-alaag-aaga"

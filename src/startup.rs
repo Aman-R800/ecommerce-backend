@@ -4,9 +4,13 @@ use actix_session::{storage::RedisSessionStore, SessionMiddleware};
 use actix_web::{cookie::Key, dev::Server, web::{self, Data}, App, HttpServer};
 use diesel::{r2d2::ConnectionManager, PgConnection};
 use r2d2::Pool;
+use secrecy::SecretString;
 use tracing_actix_web::TracingLogger;
 
-use crate::{configuration::Settings, routes::{authentication::register::register, health_check}};
+use crate::{configuration::Settings, domain::subscriber_email::SubscriberEmail, email_client::EmailClient, routes::{authentication::register::register, confirm::confirm, health_check}};
+
+#[derive(Clone)]
+pub struct BaseUrl(pub String);
 
 pub struct Application{
     pub host: String,
@@ -41,6 +45,23 @@ impl Application {
         let pool = Pool::new(manager)
                     .expect("Failed to create pool for application");
 
+
+        let sender = SubscriberEmail::parse(settings.email.sender).unwrap();
+        let key = SecretString::from(settings.email.key.to_string());
+
+        let email_client = EmailClient::new(
+            settings.email.api_uri,
+            sender,
+            key,
+            3
+        );
+
+
+        let base_url = BaseUrl(format!(
+            "http://{}:{}/",
+            settings.application.host,
+            settings.application.port
+        ));
         let server = HttpServer::new(move || {
             App::new()
                 .wrap(
@@ -52,7 +73,10 @@ impl Application {
                 .wrap(TracingLogger::default())
                 .route("/health", web::get().to(health_check))
                 .route("/register", web::post().to(register))
+                .route("/confirm", web::get().to(confirm))
                 .app_data(Data::new(pool.clone()))
+                .app_data(Data::new(email_client.clone()))
+                .app_data(Data::new(base_url.clone()))
         })
         .listen(listener)?
         .run();

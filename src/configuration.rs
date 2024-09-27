@@ -1,6 +1,6 @@
 use std::u16;
 
-use config::{Config, File};
+use config::{Config, Environment, File};
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 
@@ -8,18 +8,25 @@ use serde::Deserialize;
 pub struct Settings{
     pub application: ApplicationSettings,
     pub database: DatabaseSettings,
-    pub redis: RedisSettings
+    pub redis: RedisSettings,
+    pub email: EmailSettings
 }
 
 impl Settings{
     pub fn get() -> Self{
+        let env_source = Environment::default()
+                            .separator("__");
+
         let config = Config::builder()
             .add_source(File::with_name("configuration/base.yaml"))
             .add_source(File::with_name("configuration/local.yaml"))
+            .add_source(env_source)
             .build()
             .expect("Failed to get configuration")
             .try_deserialize::<Settings>()
             .expect("Failed to deserialize to Settings struct");
+
+        dbg!(&config.email.api_uri);
 
         config
     }
@@ -48,6 +55,13 @@ pub struct DatabaseSettings{
 pub struct RedisSettings{
     pub host: String,
     pub port: u16,
+    pub key: String
+}
+
+#[derive(Deserialize, Debug)]
+pub struct EmailSettings{
+    pub api_uri: String,
+    pub sender: String,
     pub key: String
 }
 
