@@ -2,9 +2,25 @@ use std::error::Error;
 
 use diesel::{pg::Pg, r2d2::ConnectionManager, Connection, PgConnection, RunQueryDsl};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use ecommerce::{configuration::{DatabaseSettings, Settings}, startup::Application, utils::DbPool};
+use ecommerce::{configuration::{DatabaseSettings, Settings}, startup::Application, telemetry::{get_subscriber, init_subscriber}, utils::DbPool};
+use once_cell::sync::Lazy;
 use r2d2::Pool;
 use uuid::Uuid;
+
+static LOGGER_INSTANCE: Lazy<()> = Lazy::new(|| {
+    let log_level = "info".to_string();
+    let name = "ecommerce-test".to_string();
+
+    if std::env::var("TEST_LOG").is_ok() {
+        let subscriber = get_subscriber(name, log_level, std::io::stdout);
+        init_subscriber(subscriber);
+    } else {
+        let subscriber = get_subscriber(name, log_level, std::io::sink);
+        init_subscriber(subscriber);
+    }
+
+    ()
+});
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
@@ -45,6 +61,8 @@ impl TestApp {
     }
 
     pub async fn spawn_app() -> TestApp{
+        Lazy::force(&LOGGER_INSTANCE);
+
         let mut settings = Settings::get();
         settings.application.port = 0;
         settings.database.name = Uuid::new_v4().to_string();
@@ -52,10 +70,11 @@ impl TestApp {
         let pool = TestApp::create_db(&settings.database);
 
         
-        let mut application = Application::new(settings.application);
-        let server = application.get_server().expect("Failed to get server");
+        let application = Application::new(settings)
+                            .await
+                            .expect("Failed to build application");
 
-        tokio::task::spawn(server);
+        tokio::task::spawn(application.server);
 
         return TestApp{
             host: application.host,

@@ -1,7 +1,10 @@
 application:
-  host: "127.0.0.1"
   port: 8080
 
 database:
   port: 5432
   name: "ecommerce"
+
+redis:
+  port: 6379
+  key: "this-is-a-secret-key--aalhag;h-agaiga;hgagagagag-agagaga04w2i31114jkbnn"

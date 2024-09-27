@@ -1,4 +1,10 @@
+application:
+  host: "localhost"
+
 database:
   host: "localhost"
   username: "postgres"
   password: "password"
+
+redis:
+  host: "localhost"
