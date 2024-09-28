@@ -25,17 +25,18 @@ pub async fn login(
     let email = SubscriberEmail::parse(form.0.email)
                     .map_err(ErrorBadRequest)?;
 
-    let hashed_password = match get_user_info(&pool, &email).await
+
+    let user_info = match get_user_info(&pool, &email).await
                                 .map_err(ErrorInternalServerError)?{
         Some(p) => p,
         None => return Err(ErrorBadRequest(anyhow::anyhow!("No user registered with this email")))
     };
 
-    match verify_password(form.0.password, hashed_password).await{
+    match verify_password(form.0.password, user_info.password.clone()).await{
         Ok(res) => {
             if res {
                 session.renew();
-                session.insert("email", &email.0)
+                session.insert("user_id", &user_info.user_id.to_string())
                     .context("Failed to insert associated email to session")
                     .map_err(ErrorInternalServerError)?
             } else {
@@ -56,7 +57,7 @@ pub async fn login(
 #[tracing::instrument(
     "Getting user info from email"
 )]
-pub async fn get_user_info(pool: &DbPool, email: &SubscriberEmail) -> Result<Option<String>, anyhow::Error>{
+pub async fn get_user_info(pool: &DbPool, email: &SubscriberEmail) -> Result<Option<User>, anyhow::Error>{
     let mut conn = pool.get()?;
     let email_string = email.0.clone();
 
@@ -79,7 +80,7 @@ pub async fn get_user_info(pool: &DbPool, email: &SubscriberEmail) -> Result<Opt
     .context("Failed due to threadpool error")?;
 
     match user{
-        Ok(r) => Ok(Some(r.password)),
+        Ok(r) => Ok(Some(r)),
         Err(e) => {
             tracing::error!("{:?}", e);
             Ok(None)
