@@ -7,7 +7,7 @@ use r2d2::Pool;
 use secrecy::SecretString;
 use tracing_actix_web::TracingLogger;
 
-use crate::{configuration::Settings, domain::subscriber_email::SubscriberEmail, email_client::EmailClient, routes::{authentication::register::register, confirm::confirm, health_check}};
+use crate::{configuration::Settings, domain::subscriber_email::SubscriberEmail, email_client::EmailClient, routes::{authentication::{login::login, register::register}, confirm::confirm, health_check}};
 
 #[derive(Clone)]
 pub struct BaseUrl(pub String);
@@ -74,6 +74,7 @@ impl Application {
                 .route("/health", web::get().to(health_check))
                 .route("/register", web::post().to(register))
                 .route("/confirm", web::get().to(confirm))
+                .route("/login", web::post().to(login))
                 .app_data(Data::new(pool.clone()))
                 .app_data(Data::new(email_client.clone()))
                 .app_data(Data::new(base_url.clone()))

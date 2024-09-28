@@ -1,5 +1,5 @@
-use actix_session::{Session, SessionExt, SessionGetError};
-use actix_web::{dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform}, error::ErrorForbidden};
+use actix_session::{Session, SessionExt, SessionGetError, SessionInsertError};
+use actix_web::{dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform}, error::ErrorForbidden, FromRequest};
 use futures_util::future::{ready, LocalBoxFuture, Ready};
 use tracing::Instrument;
 
@@ -8,6 +8,24 @@ pub struct TypedSession(Session);
 impl TypedSession {
     pub fn get(&self, key: &str) -> Result<Option<String>, SessionGetError>{
         self.0.get(key)
+    }
+
+    pub fn insert(&self, key: &str, value: &str) -> Result<(), SessionInsertError>{
+        self.0.insert(key, value)
+    }
+
+    pub fn renew(&self){
+        self.0.renew();
+    }
+}
+
+impl FromRequest for TypedSession {
+    type Error = actix_web::Error;
+    type Future = Ready<Result<Self, Self::Error>>;
+
+    fn from_request(req: &actix_web::HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
+        let session = req.get_session();
+        ready(Ok(TypedSession(session)))
     }
 }
 

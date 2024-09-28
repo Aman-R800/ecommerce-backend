@@ -1,0 +1,88 @@
+use actix_web::{error::{ErrorBadRequest, ErrorInternalServerError, ErrorUnauthorized}, web, HttpResponse};
+use anyhow::Context;
+use diesel::{ExpressionMethods, QueryDsl, QueryResult, RunQueryDsl};
+use secrecy::SecretString;
+use serde::Deserialize;
+
+use crate::{domain::subscriber_email::SubscriberEmail, models::User, password::verify_password, session_state::TypedSession, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+
+
+#[derive(Deserialize, Debug)]
+pub struct LoginForm{
+    pub email: String,
+    pub password: SecretString
+}
+
+#[tracing::instrument(
+    "Logging in user",
+    skip(pool, session)
+)]
+pub async fn login(
+    pool: web::Data<DbPool>,
+    form: web::Form<LoginForm>,
+    session: TypedSession
+) -> Result<HttpResponse, actix_web::Error>{
+    let email = SubscriberEmail::parse(form.0.email)
+                    .map_err(ErrorBadRequest)?;
+
+    let hashed_password = match get_user_info(&pool, &email).await
+                                .map_err(ErrorInternalServerError)?{
+        Some(p) => p,
+        None => return Err(ErrorBadRequest(anyhow::anyhow!("No user registered with this email")))
+    };
+
+    match verify_password(form.0.password, hashed_password).await{
+        Ok(res) => {
+            if res {
+                session.renew();
+                session.insert("email", &email.0)
+                    .context("Failed to insert associated email to session")
+                    .map_err(ErrorInternalServerError)?
+            } else {
+                tracing::info!("Passwords did not match");
+                return Err(ErrorUnauthorized("Email or password is incorrect"))
+            }
+        },
+        Err(e) => {
+            let err = e.to_string();
+            tracing::error!(err);
+            return Err(ErrorInternalServerError("Failed to login"));
+        }
+    }
+
+    Ok(HttpResponse::Ok().body("Successfully logged in"))
+}
+
+#[tracing::instrument(
+    "Getting user info from email"
+)]
+pub async fn get_user_info(pool: &DbPool, email: &SubscriberEmail) -> Result<Option<String>, anyhow::Error>{
+    let mut conn = pool.get()?;
+    let email_string = email.0.clone();
+
+    let user = spawn_blocking_with_tracing(move || {
+        use crate::schema::users;
+
+        let res: QueryResult<User> = users::table.select((
+            users::user_id,
+            users::name,
+            users::email,
+            users::password,
+            users::status
+        ))
+        .filter(users::email.eq(email_string))
+        .get_result::<User>(&mut conn);
+
+        res
+    })
+    .await
+    .context("Failed due to threadpool error")?;
+
+    match user{
+        Ok(r) => Ok(Some(r.password)),
+        Err(e) => {
+            tracing::error!("{:?}", e);
+            Ok(None)
+        }
+    }
+}
