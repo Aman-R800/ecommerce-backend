@@ -8,7 +8,7 @@ use thiserror::Error;
 use diesel::prelude::*;
 use uuid::Uuid;
 
-use crate::{domain::subscriber_email::SubscriberEmail, email_client::EmailClient, models::{ConfirmationMap, User}, password::compute_password_hash, startup::BaseUrl, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
+use crate::{domain::user_email::UserEmail, email_client::EmailClient, models::{ConfirmationMap, User}, password::compute_password_hash, startup::BaseUrl, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
 
 #[tracing::instrument(
     "User registration started",
@@ -26,7 +26,7 @@ pub async fn register(
         return Err(RegisterError::PasswordNotMatching.into())
     }
 
-    let email = match SubscriberEmail::parse(form.email.clone()){
+    let email = match UserEmail::parse(form.email.clone()){
         Ok(email) => email,
         Err(e) => return Ok(HttpResponse::BadRequest().body(e))
     };

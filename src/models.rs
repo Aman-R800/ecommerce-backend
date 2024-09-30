@@ -1,4 +1,6 @@
 use diesel::prelude::{Insertable, Queryable};
+use serde::Deserialize;
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::schema::users;
@@ -12,6 +14,16 @@ pub struct User{
     pub email: String,
     pub password: String,
     pub status: Option<String>
+}
+
+
+#[derive(Queryable, Insertable, Serialize, Deserialize)]
+#[diesel(table_name = users)]
+pub struct UserProfileInfo{
+    pub name: String,
+    pub email: String,
+    pub phone_number: Option<String>,
+    pub address: Option<String>
 }
 
 #[derive(Queryable, Insertable)]

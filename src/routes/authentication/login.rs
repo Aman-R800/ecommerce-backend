@@ -4,7 +4,7 @@ use diesel::{ExpressionMethods, QueryDsl, QueryResult, RunQueryDsl};
 use secrecy::SecretString;
 use serde::Deserialize;
 
-use crate::{domain::subscriber_email::SubscriberEmail, models::User, password::verify_password, session_state::TypedSession, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{domain::user_email::UserEmail, models::User, password::verify_password, session_state::TypedSession, telemetry::spawn_blocking_with_tracing, utils::DbPool};
 
 
 #[derive(Deserialize, Debug)]
@@ -22,7 +22,7 @@ pub async fn login(
     form: web::Form<LoginForm>,
     session: TypedSession
 ) -> Result<HttpResponse, actix_web::Error>{
-    let email = SubscriberEmail::parse(form.0.email)
+    let email = UserEmail::parse(form.0.email)
                     .map_err(ErrorBadRequest)?;
 
 
@@ -57,7 +57,7 @@ pub async fn login(
 #[tracing::instrument(
     "Getting user info from email"
 )]
-pub async fn get_user_info(pool: &DbPool, email: &SubscriberEmail) -> Result<Option<User>, anyhow::Error>{
+pub async fn get_user_info(pool: &DbPool, email: &UserEmail) -> Result<Option<User>, anyhow::Error>{
     let mut conn = pool.get()?;
     let email_string = email.0.clone();
 

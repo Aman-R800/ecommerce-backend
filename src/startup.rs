@@ -7,7 +7,7 @@ use r2d2::Pool;
 use secrecy::SecretString;
 use tracing_actix_web::TracingLogger;
 
-use crate::{configuration::Settings, domain::subscriber_email::SubscriberEmail, email_client::EmailClient, routes::{authentication::{login::login, register::register}, confirm::confirm, health_check}};
+use crate::{configuration::Settings, domain::user_email::UserEmail, email_client::EmailClient, routes::{authentication::{login::login, register::register}, confirm::confirm, health_check, profile::get_profile}, session_state::SessionMiddlewareFactory};
 
 #[derive(Clone)]
 pub struct BaseUrl(pub String);
@@ -46,7 +46,7 @@ impl Application {
                     .expect("Failed to create pool for application");
 
 
-        let sender = SubscriberEmail::parse(settings.email.sender).unwrap();
+        let sender = UserEmail::parse(settings.email.sender).unwrap();
         let key = SecretString::from(settings.email.key.to_string());
 
         let email_client = EmailClient::new(
@@ -75,6 +75,10 @@ impl Application {
                 .route("/register", web::post().to(register))
                 .route("/confirm", web::get().to(confirm))
                 .route("/login", web::post().to(login))
+                .service(web::scope("/user")
+                    .wrap(SessionMiddlewareFactory)
+                    .route("/profile", web::get().to(get_profile))
+                )
                 .app_data(Data::new(pool.clone()))
                 .app_data(Data::new(email_client.clone()))
                 .app_data(Data::new(base_url.clone()))

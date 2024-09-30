@@ -1,10 +1,10 @@
 use validator::ValidateEmail;
 
 #[derive(Debug, Clone)]
-pub struct SubscriberEmail(pub String);
+pub struct UserEmail(pub String);
 
-impl SubscriberEmail {
-    pub fn parse(email: String) -> Result<SubscriberEmail, String> {
+impl UserEmail {
+    pub fn parse(email: String) -> Result<UserEmail, String> {
         if ValidateEmail::validate_email(&email) {
             Ok(Self(email))
         } else {
@@ -17,7 +17,7 @@ impl SubscriberEmail {
     }
 }
 
-impl std::fmt::Display for SubscriberEmail {
+impl std::fmt::Display for UserEmail {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
@@ -26,26 +26,26 @@ impl std::fmt::Display for SubscriberEmail {
 
 #[cfg(test)]
 mod tests {
-    use super::SubscriberEmail;
+    use super::UserEmail;
     use claim::assert_err;
     use fake::{faker::internet::en::SafeEmail, Fake};
     use rand::{rngs::StdRng, SeedableRng};
     #[test]
     fn empty_string_is_rejected() {
         let email = "".to_string();
-        assert_err!(SubscriberEmail::parse(email));
+        assert_err!(UserEmail::parse(email));
     }
 
     #[test]
     fn email_missing_at_symbol_is_rejected() {
         let email = "ursuladomain.com".to_string();
-        assert_err!(SubscriberEmail::parse(email));
+        assert_err!(UserEmail::parse(email));
     }
 
     #[test]
     fn email_missing_subject_is_rejected() {
         let email = "@domain.com".to_string();
-        assert_err!(SubscriberEmail::parse(email));
+        assert_err!(UserEmail::parse(email));
     }
 
     #[derive(Debug, Clone)]
@@ -66,6 +66,6 @@ mod tests {
 
     #[quickcheck_macros::quickcheck]
     fn valid_emails_are_parsed_successfully(valid_email: ValidateEmailFixture) -> bool {
-        SubscriberEmail::parse(valid_email.0).is_ok()
+        UserEmail::parse(valid_email.0).is_ok()
     }
 }

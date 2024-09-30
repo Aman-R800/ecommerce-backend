@@ -14,6 +14,9 @@ diesel::table! {
         email -> Text,
         password -> Text,
         status -> Nullable<Text>,
+        #[max_length = 10]
+        phone_number -> Nullable<Varchar>,
+        address -> Nullable<Text>,
     }
 }
 
