@@ -5,6 +5,7 @@ use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use ecommerce::{configuration::{DatabaseSettings, Settings}, startup::Application, telemetry::{get_subscriber, init_subscriber}, utils::DbPool};
 use once_cell::sync::Lazy;
 use r2d2::Pool;
+use reqwest::redirect::Policy;
 use uuid::Uuid;
 use wiremock::MockServer;
 
@@ -36,7 +37,8 @@ pub struct TestApp{
     pub host: String,
     pub port: u16,
     pub pool: DbPool,
-    pub email_api: MockServer
+    pub email_api: MockServer,
+    pub api_client: reqwest::Client
 }
 
 impl TestApp {
@@ -82,11 +84,18 @@ impl TestApp {
 
         tokio::task::spawn(application.server);
 
+        let api_client = reqwest::Client::builder()
+                            .redirect(Policy::none())
+                            .cookie_store(true)
+                            .build()
+                            .unwrap();
+
         return TestApp{
             host: application.host,
             port: application.port,
             pool,
-            email_api
+            email_api,
+            api_client
         }
     }
 

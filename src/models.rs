@@ -17,7 +17,7 @@ pub struct User{
 }
 
 
-#[derive(Queryable, Insertable, Serialize, Deserialize)]
+#[derive(Queryable, Insertable, Serialize, Deserialize, Debug)]
 #[diesel(table_name = users)]
 pub struct UserProfileInfo{
     pub name: String,

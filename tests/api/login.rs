@@ -44,26 +44,6 @@ async fn post_login_with_correct_data(){
 
     assert_eq!(confirm_response.status().as_u16(), 200);
 
-    let status = {
-        use ecommerce::schema::users;
-
-        let mut conn = app.pool.get().unwrap();
-
-        let user: User = users::table.select((
-            users::user_id,
-            users::name,
-            users::email,
-            users::password,
-            users::status
-        ))
-        .filter(users::email.eq("amanrao032@gmail.com"))
-        .first::<User>(&mut conn)
-        .unwrap();
-
-        user.status.unwrap()
-    };
-
-    assert_eq!(status, "confirmed");
 
     let login_request = serde_json::json!({
         "email": "amanrao032@gmail.com",

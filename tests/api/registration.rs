@@ -2,7 +2,6 @@
 use actix_web::web;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use diesel::dsl::count;
-use ecommerce::email_client::SendEmailRequest;
 use ecommerce::models::User;
 use serde::Deserialize;
 use wiremock::matchers::{header_exists, path};
