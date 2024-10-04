@@ -10,7 +10,9 @@ use rand::rngs::OsRng;
 use reqwest::redirect::Policy;
 use serde::Serialize;
 use uuid::Uuid;
-use wiremock::MockServer;
+use wiremock::{matchers::{header_exists, path}, Mock, MockServer, ResponseTemplate};
+
+use crate::registration::ReceiveEmailRequest;
 
 static LOGGER_INSTANCE: Lazy<()> = Lazy::new(|| {
     let log_level = "info".to_string();
@@ -89,7 +91,7 @@ pub struct TestApp{
 
 impl TestApp {
     pub async fn get_inventory(&self, page: i64, limit: i64) -> reqwest::Response{
-        self.api_client.get(format!("http://{}:{}/admin/inventory?page={}&limit={}",
+        self.api_client.get(format!("http://{}:{}/inventory?page={}&limit={}",
             self.host,
             self.port,
             page,
@@ -206,4 +208,50 @@ impl TestApp {
         confirmation_link.to_string()
     }
 
+}
+
+
+pub async fn create_user_and_login(app: &TestApp){
+    let body = serde_json::json!({
+        "email" : "amanrao032@gmail.com",
+        "name" : "Aman Rao",
+        "password" : "testpassword",
+        "confirm_password" : "testpassword"
+    });
+
+    let guard = Mock::given(path("/email"))
+        .and(header_exists("X-Postmark-Server-Token"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount_as_scoped(&app.email_api)
+        .await;
+
+    app.api_client.post(format!("http://{}:{}/register", app.host, app.port))
+            .form(&body)
+            .send()
+            .await
+            .expect("Failed to send request to register endpoint");
+
+    let requests = guard.received_requests().await;
+    let body_json: ReceiveEmailRequest = requests[0].body_json().unwrap();
+
+    let link = app.get_confirmation_link(&body_json.text_body);
+    
+    app.api_client.get(link)
+            .send()
+            .await
+            .expect("Failed to send request to confirm endpoint");
+
+    let login_request = serde_json::json!({
+        "email": "amanrao032@gmail.com",
+        "password": "testpassword"
+    });
+
+    let response = app.api_client.post(format!("http://{}:{}/login", app.host, app.port))
+        .form(&login_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status().as_u16(), 200)
 }

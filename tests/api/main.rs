@@ -4,3 +4,4 @@ pub mod registration;
 pub mod login;
 pub mod user_profile;
 pub mod inventory;
+pub mod order;

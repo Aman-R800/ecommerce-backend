@@ -12,6 +12,7 @@ actix-session = { version = "0.10.1", features = ["redis-session-rustls"] }
 actix-web = "4.9.0"
 anyhow = "1.0.89"
 argon2 = { version = "0.5.3", features = ["password-hash"] }
+chrono = "0.4.38"
 claim = "0.5.0"
 config = "0.14.0"
 diesel = { version = "2.2.4", features = ["chrono", "postgres", "postgres_backend", "r2d2", "uuid"] }
