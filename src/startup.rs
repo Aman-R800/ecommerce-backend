@@ -7,7 +7,7 @@ use r2d2::Pool;
 use secrecy::SecretString;
 use tracing_actix_web::TracingLogger;
 
-use crate::{admin_middleware::AdminMiddlewareFactory, configuration::Settings, domain::user_email::UserEmail, email_client::EmailClient, routes::{authentication::{login::login, register::register}, confirm::confirm, health_check, inventory::post_inventory, profile::{get_profile, post_profile}}, session_state::SessionMiddlewareFactory};
+use crate::{admin_middleware::AdminMiddlewareFactory, configuration::Settings, domain::user_email::UserEmail, email_client::EmailClient, routes::{authentication::{login::login, register::register}, confirm::confirm, health_check, inventory::{get_inventory, post_inventory}, profile::{get_profile, post_profile}}, session_state::SessionMiddlewareFactory};
 
 #[derive(Clone)]
 pub struct BaseUrl(pub String);
@@ -84,6 +84,7 @@ impl Application {
                     .wrap(AdminMiddlewareFactory)
                     .wrap(SessionMiddlewareFactory)
                     .route("/inventory", web::post().to(post_inventory))
+                    .route("/inventory", web::get().to(get_inventory))
                 )
                 .app_data(Data::new(pool.clone()))
                 .app_data(Data::new(email_client.clone()))

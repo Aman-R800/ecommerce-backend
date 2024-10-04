@@ -88,6 +88,18 @@ pub struct TestApp{
 }
 
 impl TestApp {
+    pub async fn get_inventory(&self, page: i64, limit: i64) -> reqwest::Response{
+        self.api_client.get(format!("http://{}:{}/admin/inventory?page={}&limit={}",
+            self.host,
+            self.port,
+            page,
+            limit
+        ))
+        .send()
+        .await
+        .unwrap()
+    }
+
     pub async fn login_admin(&self){
         let login_request = serde_json::json!({
             "email": self.admin.email,

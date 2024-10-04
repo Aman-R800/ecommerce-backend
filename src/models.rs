@@ -35,7 +35,7 @@ pub struct ConfirmationMap{
     pub user_id: Option<Uuid>
 }
 
-#[derive(Queryable, Insertable)]
+#[derive(Queryable, Insertable, Serialize, Deserialize)]
 #[diesel(table_name = inventory)]
 pub struct InventoryItem{
     pub item_id: Uuid,
