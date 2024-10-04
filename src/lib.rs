@@ -9,3 +9,4 @@ pub mod password;
 pub mod email_client;
 pub mod domain;
 pub mod session_state;
+pub mod admin_middleware;

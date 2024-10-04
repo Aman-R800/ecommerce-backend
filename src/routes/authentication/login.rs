@@ -37,8 +37,15 @@ pub async fn login(
             if res {
                 session.renew();
                 session.insert("user_id", &user_info.user_id.to_string())
-                    .context("Failed to insert associated email to session")
-                    .map_err(ErrorInternalServerError)?
+                    .context("Failed to insert associated user_id to session")
+                    .map_err(ErrorInternalServerError)?;
+
+                if user_info.is_admin{
+                    session.insert("is_admin", "TRUE")
+                        .context("Failed to insert admin_privilege to the session")
+                        .map_err(ErrorInternalServerError)?
+                }
+
             } else {
                 tracing::info!("Passwords did not match");
                 return Err(ErrorUnauthorized("Email or password is incorrect"))
@@ -69,7 +76,8 @@ pub async fn get_user_info(pool: &DbPool, email: &UserEmail) -> Result<Option<Us
             users::name,
             users::email,
             users::password,
-            users::status
+            users::status,
+            users::is_admin
         ))
         .filter(users::email.eq(email_string))
         .get_result::<User>(&mut conn);

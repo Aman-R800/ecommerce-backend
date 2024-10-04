@@ -3,7 +3,7 @@ use actix_web::{dev::{forward_ready, Service, ServiceRequest, ServiceResponse, T
 use futures_util::future::{ready, LocalBoxFuture, Ready};
 use tracing::Instrument;
 
-pub struct TypedSession(Session);
+pub struct TypedSession(pub Session);
 
 impl TypedSession {
     pub fn get(&self, key: &str) -> Result<Option<String>, SessionGetError>{

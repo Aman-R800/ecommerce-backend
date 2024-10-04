@@ -188,7 +188,8 @@ async fn get_confirm_confirms_subscription(){
             users::name,
             users::email,
             users::password,
-            users::status
+            users::status,
+            users::is_admin
         ))
         .filter(users::email.eq("amanrao032@gmail.com"))
         .first::<User>(&mut conn)

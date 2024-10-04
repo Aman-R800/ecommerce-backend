@@ -1,11 +1,14 @@
-use std::{error::Error, net::TcpListener};
+use std::error::Error;
 
+use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use diesel::{pg::Pg, r2d2::ConnectionManager, Connection, PgConnection, RunQueryDsl};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use ecommerce::{configuration::{DatabaseSettings, Settings}, startup::Application, telemetry::{get_subscriber, init_subscriber}, utils::DbPool};
+use ecommerce::{configuration::{DatabaseSettings, Settings}, models::User, startup::Application, telemetry::{get_subscriber, init_subscriber}, utils::DbPool};
 use once_cell::sync::Lazy;
 use r2d2::Pool;
+use rand::rngs::OsRng;
 use reqwest::redirect::Policy;
+use serde::Serialize;
 use uuid::Uuid;
 use wiremock::MockServer;
 
@@ -33,15 +36,89 @@ fn run_migrations(connection: &mut impl MigrationHarness<Pg>)
     Ok(())
 }
 
+pub struct TestUser{
+    user_id: Uuid,
+    email: String,
+    password: String
+}
+
+impl TestUser {
+    fn generate(admin: bool, pool: &DbPool) -> TestUser{
+        use ecommerce::schema::users;
+
+        let mut conn = pool.get().unwrap();
+        
+        let salt = SaltString::generate(&mut OsRng);
+        let password_phc = Argon2::default()
+                            .hash_password(&"testpassword".as_bytes(), &salt)
+                            .unwrap()
+                            .to_string(); 
+
+        let user = User{
+            user_id: Uuid::new_v4(),
+            email: "test@gmail.com".to_string(),
+            name: "test name".to_string(),
+            password: password_phc,
+            is_admin: admin,
+            status: Some("confirmed".to_string())
+        };
+
+        diesel::insert_into(
+            users::table
+        )
+        .values(&user)
+        .execute(&mut conn)
+        .unwrap();
+
+        TestUser{
+            user_id: user.user_id,
+            email: user.email,
+            password: "testpassword".to_string()
+        }
+    }
+}
+
 pub struct TestApp{
     pub host: String,
     pub port: u16,
     pub pool: DbPool,
     pub email_api: MockServer,
-    pub api_client: reqwest::Client
+    pub api_client: reqwest::Client,
+    pub admin: TestUser
 }
 
 impl TestApp {
+    pub async fn login_admin(&self){
+        let login_request = serde_json::json!({
+            "email": self.admin.email,
+            "password": self.admin.password
+        });
+
+        let login_response = self.api_client.post(format!("http://{}:{}/login", self.host, self.port))
+            .form(&login_request)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(login_response.status().as_u16(), 200);
+    }
+    
+    pub async fn post_inventory<Body>(&self, item: Body) -> reqwest::Response
+    where 
+        Body: Serialize
+    {
+        self.api_client.post(
+            format!("http://{}:{}/admin/inventory",
+                self.host,
+                self.port
+            )
+        )
+        .form(&item)
+        .send()
+        .await
+        .unwrap()
+    }
+
     fn create_db(settings: &DatabaseSettings) -> DbPool{
         let mut connection = PgConnection::establish(&settings.get_database_url())
                                 .expect("Failed to connect to postgres database");
@@ -90,12 +167,15 @@ impl TestApp {
                             .build()
                             .unwrap();
 
+        let admin = TestUser::generate(true, &pool);
+
         return TestApp{
             host: application.host,
             port: application.port,
             pool,
             email_api,
-            api_client
+            api_client,
+            admin
         }
     }
 

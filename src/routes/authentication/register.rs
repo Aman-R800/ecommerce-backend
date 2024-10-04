@@ -125,7 +125,8 @@ pub async fn insert_user_into_database(
         name,
         email,
         password: password_hash.expose_secret().to_string(),
-        status: Some("pending".to_string())
+        status: Some("pending".to_string()),
+        is_admin: false
     };
 
     let mut conn = pool.get()
