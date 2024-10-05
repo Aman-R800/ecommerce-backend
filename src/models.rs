@@ -65,3 +65,13 @@ pub struct OrderItemModel{
     pub item_id: Uuid,
     pub quantity: i32
 }
+
+#[derive(Queryable)]
+pub struct OrderIntermediate{
+    pub order_id: Uuid,
+    pub user_id: Option<Uuid>,
+    pub order_date: Option<DateTime<Utc>>,
+    pub status: String,
+    pub item_id: Uuid,
+    pub quantity: i32
+}

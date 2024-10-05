@@ -90,6 +90,23 @@ pub struct TestApp{
 }
 
 impl TestApp {
+    pub async fn get_orders_request(&self, page: i64, limit: i64) -> reqwest::RequestBuilder{
+        self.api_client.get(format!("http://{}:{}/order?page={}&limit={}",
+            self.host,
+            self.port,
+            page,
+            limit
+        ))
+    }
+
+    pub async fn get_orders(&self, page: i64, limit: i64) -> reqwest::Response{
+        self.get_orders_request(page, limit)
+            .await
+            .send()
+            .await
+            .unwrap()
+    }
+
     pub async fn get_inventory(&self, page: i64, limit: i64) -> reqwest::Response{
         self.api_client.get(format!("http://{}:{}/inventory?page={}&limit={}",
             self.host,
