@@ -271,3 +271,43 @@ async fn update_order_status(){
 
     assert_eq!(updated_order.status, "shipped")
 }
+
+
+
+#[actix_web::test]
+async fn delete_order_works_for_admin(){
+    let app = TestApp::spawn_app().await;
+    let mut conn = app.pool.get().unwrap();
+
+    let order_id = Uuid::new_v4();
+    let test_order = Order{
+        order_id: order_id.clone(),
+        user_id: app.user.user_id,
+        order_date: Utc::now(),
+        status: "pending".to_string()
+    };
+    
+    diesel::insert_into(orders::table)
+        .values(&test_order)
+        .execute(&mut conn)
+        .unwrap();
+
+    app.login_admin().await;
+
+    let delete_order_request = serde_json::json!({
+        "order_id": order_id,
+    });
+
+    dbg!(&order_id);
+
+    let response = app.delete_orders_admin(delete_order_request).await;
+    assert_eq!(response.status().as_u16(), 200);
+
+
+    let orders: Vec<OrderQuery> = orders::table
+                            .filter(orders::order_id.eq(order_id))
+                            .get_results::<OrderQuery>(&mut conn)
+                            .unwrap();
+
+    assert_eq!(orders.len(), 0)
+}

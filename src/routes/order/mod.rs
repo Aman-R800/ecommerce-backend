@@ -4,3 +4,5 @@ pub mod post;
 pub use post::post_order;
 pub mod update;
 pub use update::update_order;
+pub mod delete;
+pub use delete::delete_order;

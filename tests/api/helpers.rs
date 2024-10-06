@@ -92,6 +92,20 @@ pub struct TestApp{
 }
 
 impl TestApp {
+    pub async fn delete_orders_admin<Body>(&self, body: Body) -> reqwest::Response
+    where 
+        Body: Serialize
+    {
+        self.api_client.delete(format!("http://{}:{}/admin/order",
+            self.host,
+            self.port,
+        ))
+        .json(&body)
+        .send()
+        .await
+        .unwrap()
+    }
+
     pub async fn put_orders<Body>(&self, body: Body) -> reqwest::Response
     where 
         Body: Serialize
