@@ -4,6 +4,7 @@ use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use diesel::{pg::Pg, r2d2::ConnectionManager, Connection, PgConnection, RunQueryDsl};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use ecommerce::{configuration::{DatabaseSettings, Settings}, models::User, startup::Application, telemetry::{get_subscriber, init_subscriber}, utils::DbPool};
+use fake::{faker::internet::en::FreeEmail, Fake};
 use once_cell::sync::Lazy;
 use r2d2::Pool;
 use rand::rngs::OsRng;
@@ -39,9 +40,9 @@ fn run_migrations(connection: &mut impl MigrationHarness<Pg>)
 }
 
 pub struct TestUser{
-    user_id: Uuid,
-    email: String,
-    password: String
+    pub user_id: Uuid,
+    pub email: String,
+    pub password: String
 }
 
 impl TestUser {
@@ -58,7 +59,7 @@ impl TestUser {
 
         let user = User{
             user_id: Uuid::new_v4(),
-            email: "test@gmail.com".to_string(),
+            email: FreeEmail().fake(),
             name: "test name".to_string(),
             password: password_phc,
             is_admin: admin,
@@ -86,10 +87,25 @@ pub struct TestApp{
     pub pool: DbPool,
     pub email_api: MockServer,
     pub api_client: reqwest::Client,
-    pub admin: TestUser
+    pub admin: TestUser,
+    pub user: TestUser
 }
 
 impl TestApp {
+    pub async fn put_orders<Body>(&self, body: Body) -> reqwest::Response
+    where 
+        Body: Serialize
+    {
+        self.api_client.put(format!("http://{}:{}/admin/order",
+            self.host,
+            self.port,
+        ))
+        .form(&body)
+        .send()
+        .await
+        .unwrap()
+    }
+
     pub async fn get_orders_request(&self, page: i64, limit: i64) -> reqwest::RequestBuilder{
         self.api_client.get(format!("http://{}:{}/order?page={}&limit={}",
             self.host,
@@ -154,6 +170,7 @@ impl TestApp {
         let mut connection = PgConnection::establish(&settings.get_database_url())
                                 .expect("Failed to connect to postgres database");
 
+        dbg!(&settings.name);
         let query = format!(r#"CREATE DATABASE "{}";"#, settings.name);
         diesel::sql_query(query)
             .execute(&mut connection)
@@ -199,6 +216,7 @@ impl TestApp {
                             .unwrap();
 
         let admin = TestUser::generate(true, &pool);
+        let user = TestUser::generate(false, &pool);
 
         return TestApp{
             host: application.host,
@@ -206,7 +224,8 @@ impl TestApp {
             pool,
             email_api,
             api_client,
-            admin
+            admin,
+            user
         }
     }
 

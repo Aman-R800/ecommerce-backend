@@ -1,5 +1,6 @@
-use diesel::RunQueryDsl;
-use ecommerce::{models::InventoryItem, routes::order::OrderWithItems, schema::inventory};
+use chrono::Utc;
+use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
+use ecommerce::{models::{InventoryItem, Order, OrderQuery}, routes::order::get::OrderWithItems, schema::{inventory, orders}};
 use uuid::Uuid;
 
 use crate::helpers::{create_user_and_login, TestApp};
@@ -231,4 +232,42 @@ async fn concurrent_orders_is_consistent(){
     let second = second.unwrap().json::<Vec<Uuid>>().await.unwrap();
 
     assert_eq!(first.len() + second.len(), 3)
+}
+
+#[actix_web::test]
+async fn update_order_status(){
+    let app = TestApp::spawn_app().await;
+    let mut conn = app.pool.get().unwrap();
+
+    let order_id = Uuid::new_v4();
+    let test_order = Order{
+        order_id: order_id.clone(),
+        user_id: app.user.user_id,
+        order_date: Utc::now(),
+        status: "pending".to_string()
+    };
+    
+    diesel::insert_into(orders::table)
+        .values(&test_order)
+        .execute(&mut conn)
+        .unwrap();
+
+    app.login_admin().await;
+
+    let put_order_request = serde_json::json!({
+        "order_id": order_id,
+        "status": "shipped"
+    });
+
+    dbg!(&order_id);
+
+    let response = app.put_orders(put_order_request).await;
+    assert_eq!(response.status().as_u16(), 200);
+
+    let updated_order: OrderQuery = orders::table
+                            .filter(orders::order_id.eq(order_id))
+                            .get_result::<OrderQuery>(&mut conn)
+                            .unwrap();
+
+    assert_eq!(updated_order.status, "shipped")
 }

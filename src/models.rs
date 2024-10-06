@@ -48,12 +48,20 @@ pub struct InventoryItem{
     pub price: Option<f64>
 }
 
-#[derive(Queryable, Insertable)]
+#[derive(Insertable)]
 #[diesel(table_name = orders)]
 pub struct Order{
     pub order_id: Uuid,
     pub user_id: Uuid,
     pub order_date: DateTime<Utc>,
+    pub status: String
+}
+
+#[derive(Queryable)]
+pub struct OrderQuery{
+    pub order_id: Uuid,
+    pub user_id: Option<Uuid>,
+    pub order_date: Option<DateTime<Utc>>,
     pub status: String
 }
 
