@@ -17,6 +17,10 @@ impl TypedSession {
     pub fn renew(&self){
         self.0.renew();
     }
+
+    pub fn purge(&self){
+        self.0.purge();
+    }
 }
 
 impl FromRequest for TypedSession {
