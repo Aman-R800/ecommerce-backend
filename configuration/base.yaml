@@ -8,3 +8,7 @@ database:
 redis:
   port: 6379
   key: "this-is-a-secret-key--aalhag;h-agaiga;hgagagagag-agagaga04w2i31114jkbnn"
+
+jwt:
+  secret: "this-is-a-secret-for-jwt"
+  expiry_hours: 24

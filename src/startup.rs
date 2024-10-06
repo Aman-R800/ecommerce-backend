@@ -7,7 +7,7 @@ use r2d2::Pool;
 use secrecy::SecretString;
 use tracing_actix_web::TracingLogger;
 
-use crate::{admin_middleware::AdminMiddlewareFactory, configuration::Settings, domain::user_email::UserEmail, email_client::EmailClient, routes::{authentication::{login::login, register::register}, confirm::confirm, health_check, inventory::{get_inventory, post_inventory}, order::{delete_order, get_order, post_order, update_order}, profile::{get_profile, post_profile}}, session_state::SessionMiddlewareFactory};
+use crate::{admin_middleware::AdminMiddlewareFactory, configuration::Settings, domain::user_email::UserEmail, email_client::EmailClient, jwt_auth::Tokenizer, routes::{authentication::{login::login, register::register}, confirm::confirm, health_check, inventory::{get_inventory, post_inventory}, order::{delete_order, get_order, post_order, update_order}, profile::{get_profile, post_profile}}, session_state::SessionMiddlewareFactory};
 
 #[derive(Clone)]
 pub struct BaseUrl(pub String);
@@ -62,6 +62,9 @@ impl Application {
             settings.application.host,
             settings.application.port
         ));
+
+        let tokenizer = Tokenizer::new(&settings.jwt);
+
         let server = HttpServer::new(move || {
             App::new()
                 .wrap(
@@ -94,6 +97,7 @@ impl Application {
                 .app_data(Data::new(pool.clone()))
                 .app_data(Data::new(email_client.clone()))
                 .app_data(Data::new(base_url.clone()))
+                .app_data(Data::new(tokenizer.clone()))
         })
         .listen(listener)?
         .run();

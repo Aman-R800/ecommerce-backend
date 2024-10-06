@@ -9,7 +9,8 @@ pub struct Settings{
     pub application: ApplicationSettings,
     pub database: DatabaseSettings,
     pub redis: RedisSettings,
-    pub email: EmailSettings
+    pub email: EmailSettings,
+    pub jwt: JWTSettings
 }
 
 impl Settings{
@@ -39,7 +40,7 @@ impl Settings{
 #[derive(Deserialize, Debug)]
 pub struct ApplicationSettings{
     pub host: String,
-    pub port: u16
+    pub port: u16,
 }
 
 #[derive(Deserialize, Debug)]
@@ -63,6 +64,12 @@ pub struct EmailSettings{
     pub api_uri: String,
     pub sender: String,
     pub key: String
+}
+
+#[derive(Deserialize, Debug)]
+pub struct JWTSettings{
+    pub secret: String,
+    pub expiry_hours: u64
 }
 
 impl DatabaseSettings{

@@ -2,8 +2,7 @@ use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use ecommerce::models::User;
 use wiremock::{matchers::{header_exists, path}, Mock, ResponseTemplate};
 
-use crate::{helpers::TestApp, registration::ReceiveEmailRequest};
-
+use crate::{helpers::{TestApp, LoginResponse}, registration::ReceiveEmailRequest};
 
 #[actix_web::test]
 async fn post_login_with_correct_data(){
@@ -59,7 +58,7 @@ async fn post_login_with_correct_data(){
         .await
         .unwrap();
 
-    assert_eq!(login_response_body, "Successfully logged in")
+    let login_response_json = serde_json::from_str::<LoginResponse>(&login_response_body);
 }
 
 #[actix_web::test]

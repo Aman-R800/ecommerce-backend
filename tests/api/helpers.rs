@@ -9,7 +9,7 @@ use once_cell::sync::Lazy;
 use r2d2::Pool;
 use rand::rngs::OsRng;
 use reqwest::redirect::Policy;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use wiremock::{matchers::{header_exists, path}, Mock, MockServer, ResponseTemplate};
 
@@ -305,3 +305,9 @@ pub async fn create_user_and_login(app: &TestApp){
 
     assert_eq!(response.status().as_u16(), 200)
 }
+
+#[derive(Deserialize)]
+pub struct LoginResponse{
+    access_token: String
+}
+

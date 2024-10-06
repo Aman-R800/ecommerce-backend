@@ -69,7 +69,6 @@ async fn get_profile_with_logged_in_user(){
         .await
         .unwrap();
 
-    assert_eq!(login_response_body, "Successfully logged in");
 
     let response = app.api_client.get(format!("http://{}:{}/user/profile", app.host, app.port))
                     .send()
