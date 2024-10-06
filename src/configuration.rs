@@ -8,7 +8,6 @@ use serde::Deserialize;
 pub struct Settings{
     pub application: ApplicationSettings,
     pub database: DatabaseSettings,
-    pub redis: RedisSettings,
     pub email: EmailSettings,
     pub jwt: JWTSettings
 }
@@ -31,10 +30,6 @@ impl Settings{
 
         config
     }
-
-    pub fn get_key(&self) -> &[u8] {
-        self.redis.key.as_bytes() 
-    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -50,13 +45,6 @@ pub struct DatabaseSettings{
     pub name: String,
     pub username: String,
     pub password: SecretString
-}
-
-#[derive(Deserialize, Debug)]
-pub struct RedisSettings{
-    pub host: String,
-    pub port: u16,
-    pub key: String
 }
 
 #[derive(Deserialize, Debug)]

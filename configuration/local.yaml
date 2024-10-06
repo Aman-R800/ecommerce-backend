@@ -6,9 +6,6 @@ database:
   username: "postgres"
   password: "password"
 
-redis:
-  host: "localhost"
-
 email:
   api_uri: "http://localhost:5000/"
   sender: "test@gmail.com"
