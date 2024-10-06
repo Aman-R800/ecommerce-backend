@@ -5,7 +5,7 @@ use secrecy::SecretString;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::{domain::user_email::UserEmail, jwt_auth::Tokenizer, models::User, password::verify_password, session_state::TypedSession, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{domain::user_email::UserEmail, jwt_auth::Tokenizer, models::User, password::verify_password, telemetry::spawn_blocking_with_tracing, utils::DbPool};
 
 
 #[derive(Deserialize, Debug)]
@@ -16,12 +16,11 @@ pub struct LoginForm{
 
 #[tracing::instrument(
     "Logging in user",
-    skip(pool, session, tokenizer)
+    skip(pool, tokenizer)
 )]
 pub async fn login(
     pool: web::Data<DbPool>,
     form: web::Form<LoginForm>,
-    session: TypedSession,
     tokenizer: web::Data<Tokenizer>
 ) -> Result<HttpResponse, actix_web::Error>{
     let email = UserEmail::parse(form.0.email)
@@ -37,19 +36,6 @@ pub async fn login(
     match verify_password(form.0.password, user_info.password.clone()).await{
         Ok(res) => {
             if res {
-                // Change this part for jwt
-
-                session.renew();
-                session.insert("user_id", &user_info.user_id.to_string())
-                    .context("Failed to insert associated user_id to session")
-                    .map_err(ErrorInternalServerError)?;
-
-                if user_info.is_admin{
-                    session.insert("is_admin", "TRUE")
-                        .context("Failed to insert admin_privilege to the session")
-                        .map_err(ErrorInternalServerError)?
-                }
-
                 let jwt_token = tokenizer.generate_key(user_info);
                 return Ok(HttpResponse::Ok().json(json!({ "access_token": jwt_token })))
 

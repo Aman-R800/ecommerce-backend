@@ -2,12 +2,11 @@ use std::fmt::Debug;
 use std::error::Error;
 
 use actix_web::{web, HttpResponse, ResponseError};
-use anyhow::Context;
 use diesel::{ExpressionMethods, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{domain::{phone_number::PhoneNumberDomain, user_email::UserEmail}, models::UserProfileInfo, session_state::TypedSession, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
+use crate::{domain::{phone_number::PhoneNumberDomain, user_email::UserEmail}, jwt_auth::IsUser, models::UserProfileInfo, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
 
 use super::get_user_profile_info;
 
@@ -49,16 +48,9 @@ impl ResponseError for PostProfileError {
 pub async fn post_profile(
     pool: web::Data<DbPool>,
     form: web::Form<ProfileForm>,
-    session: TypedSession
+    uid: IsUser
 ) -> Result<HttpResponse, PostProfileError>{
-    let user_id = Uuid::parse_str(&{
-        match session.get("user_id")
-                .context("Failed to get user id")?
-        {
-            Some(uid) => uid,
-            None => return Err(anyhow::anyhow!("No user_id found").into())
-        }
-    }).unwrap();
+    let user_id = uid.0;
 
     let info = get_user_profile_info(&pool, user_id.clone()).await?;
     let new_info = substitute_old_info_with_new(info, form.0)

@@ -4,7 +4,7 @@ use diesel::{Connection, ExpressionMethods, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{schema::orders, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{jwt_auth::IsUser, schema::orders, telemetry::spawn_blocking_with_tracing, utils::DbPool};
 
 #[derive(Deserialize, Debug)]
 pub struct DeleteOrderJson{
@@ -17,7 +17,8 @@ pub struct DeleteOrderJson{
 )]
 pub async fn delete_order(
     pool: web::Data<DbPool>,
-    json: web::Json<DeleteOrderJson>
+    json: web::Json<DeleteOrderJson>,
+    _: IsUser
 ) -> Result<HttpResponse, actix_web::Error>{
     let mut conn = pool.get().map_err(|_|{
         ErrorInternalServerError(

@@ -1,4 +1,4 @@
-use actix_web::{error::ErrorUnauthorized, FromRequest};
+use actix_web::{error::ErrorUnauthorized, web, FromRequest};
 use chrono::{Duration, Utc};
 use futures_util::future::{ready, Ready};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation};
@@ -72,14 +72,14 @@ pub enum UserRole{
 }
 
 pub struct IsAdmin(pub Uuid);
-pub struct IsUser(pub Uuid);
+pub struct IsUser(pub Uuid, pub bool);
 
 impl FromRequest for IsAdmin {
     type Error = actix_web::Error;
     type Future = Ready<Result<Self, Self::Error>>;
 
     fn from_request(req: &actix_web::HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
-        let tokenizer: &Tokenizer = req.app_data::<Tokenizer>().unwrap();
+        let tokenizer: &web::Data<Tokenizer> = req.app_data().unwrap();
         let auth = req.headers().get("Authorization");
 
         match auth {
@@ -108,7 +108,7 @@ impl FromRequest for IsUser {
     type Future = Ready<Result<Self, Self::Error>>;
 
     fn from_request(req: &actix_web::HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
-        let tokenizer: &Tokenizer = req.app_data::<Tokenizer>().unwrap();
+        let tokenizer: &web::Data<Tokenizer> = req.app_data().unwrap();
         let auth = req.headers().get("Authorization");
 
         match auth {
@@ -119,8 +119,8 @@ impl FromRequest for IsUser {
                 match tokenizer.decode_key(token.to_string()){
                     Some(r) => {
                         match r.role {
-                            UserRole::USER => ready(Ok(IsUser(r.sub))),
-                            _ => ready(Err(ErrorUnauthorized("Unauthorized Role")))
+                            UserRole::USER => ready(Ok(IsUser(r.sub, false))),
+                            UserRole::ADMIN => ready(Ok(IsUser(r.sub, true)))
                         }
                     },
                     None => ready(Err(ErrorUnauthorized("Invalid Token")))

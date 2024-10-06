@@ -5,7 +5,7 @@ use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{models::{Order, OrderItemModel}, session_state::TypedSession, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{jwt_auth::IsUser, models::{Order, OrderItemModel}, telemetry::spawn_blocking_with_tracing, utils::DbPool};
 
 #[derive(Deserialize, Debug)]
 pub struct OrderItem{
@@ -15,17 +15,14 @@ pub struct OrderItem{
 
 #[tracing::instrument(
     "Posting order",
-    skip(pool, session)
+    skip(pool, uid)
 )]
 pub async fn post_order(
     pool: web::Data<DbPool>,
     order: web::Json<Vec<OrderItem>>,
-    session: TypedSession
+    uid: IsUser
 ) -> Result<HttpResponse, actix_web::Error> {
-    let user_id = Uuid::parse_str(
-        &session.get("user_id").map_err(ErrorInternalServerError)?.unwrap()
-    )
-    .map_err(ErrorInternalServerError)?;
+    let user_id = uid.0;
 
     let item_ids: Vec<Uuid> = order.iter()
                     .map(|item| item.item_id)

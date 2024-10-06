@@ -4,10 +4,11 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use diesel::prelude::*;
 
+use crate::jwt_auth::IsUser;
 use crate::models::OrderIntermediate;
 use crate::telemetry::spawn_blocking_with_tracing;
 use crate::utils::DbConnection;
-use crate::{session_state::TypedSession, utils::DbPool};
+use crate::utils::DbPool;
 use crate::schema::{orders, order_items};
 
 #[derive(Deserialize, Debug)]
@@ -32,26 +33,15 @@ pub struct OrderItem {
 
 #[tracing::instrument(
     "Getting list of orders",
-    skip(pool, session)
+    skip(pool, uid)
 )]
 pub async fn get_order(
     pool: web::Data<DbPool>,
-    session: TypedSession,
-    query: web::Query<GetOrderQuery>
+    query: web::Query<GetOrderQuery>,
+    uid: IsUser
 ) -> Result<HttpResponse, actix_web::Error> {
-
-    let user_id: String = match session.get("user_id").map_err(ErrorInternalServerError)?{
-        Some(uid) => uid,
-        None => return Err(ErrorInternalServerError(anyhow::anyhow!("Unexpected error occured")))
-    };
-
-    let user_id = Uuid::parse_str(&user_id).unwrap();
-
-    let is_admin = match session.get("is_admin").map_err(ErrorInternalServerError)?{
-        Some(_) => true,
-        None => false
-    };
-
+    let user_id = uid.0;
+    let is_admin = uid.1;
     
     let order = get_order_with_items(
         &pool,

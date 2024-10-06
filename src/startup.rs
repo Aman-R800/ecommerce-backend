@@ -7,7 +7,7 @@ use r2d2::Pool;
 use secrecy::SecretString;
 use tracing_actix_web::TracingLogger;
 
-use crate::{admin_middleware::AdminMiddlewareFactory, configuration::Settings, domain::user_email::UserEmail, email_client::EmailClient, jwt_auth::Tokenizer, routes::{authentication::{login::login, register::register}, confirm::confirm, health_check, inventory::{get_inventory, post_inventory}, order::{delete_order, get_order, post_order, update_order}, profile::{get_profile, post_profile}}, session_state::SessionMiddlewareFactory};
+use crate::{configuration::Settings, domain::user_email::UserEmail, email_client::EmailClient, jwt_auth::Tokenizer, routes::{authentication::{login::login, register::register}, confirm::confirm, health_check, inventory::{get_inventory, post_inventory}, order::{delete_order, get_order, post_order, update_order}, profile::{get_profile, post_profile}}};
 
 #[derive(Clone)]
 pub struct BaseUrl(pub String);
@@ -81,15 +81,12 @@ impl Application {
                 .route("/inventory", web::get().to(get_inventory))
                 .route("/order", web::get().to(get_order))
                 .service(web::scope("/user")
-                    .wrap(SessionMiddlewareFactory)
                     .route("/profile", web::get().to(get_profile))
                     .route("/profile", web::post().to(post_profile))
                     .route("/order", web::post().to(post_order))
                     .route("/order", web::delete().to(delete_order))
                 )
                 .service(web::scope("/admin")
-                    .wrap(AdminMiddlewareFactory)
-                    .wrap(SessionMiddlewareFactory)
                     .route("/inventory", web::post().to(post_inventory))
                     .route("/order", web::put().to(update_order))
                     .route("/order", web::delete().to(delete_order))

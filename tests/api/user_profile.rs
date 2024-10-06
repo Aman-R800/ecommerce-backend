@@ -13,7 +13,7 @@ async fn get_profile_without_logged_in_user(){
                     .await
                     .expect("Failed to send request to user profile endpoint");
 
-    assert_eq!(response.status().as_u16(), 403)
+    assert_eq!(response.status().as_u16(), 401)
 }
 
 #[actix_web::test]

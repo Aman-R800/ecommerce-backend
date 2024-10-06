@@ -6,7 +6,7 @@ use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use uuid::Uuid;
 use thiserror::Error;
 
-use crate::{models::UserProfileInfo, schema::users, session_state::TypedSession, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
+use crate::{jwt_auth::IsUser, models::UserProfileInfo, schema::users, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
 
 #[derive(Error)]
 pub enum GetProfileError {
@@ -29,20 +29,13 @@ impl ResponseError for GetProfileError {
 
 #[tracing::instrument(
     "Get profile data of logged in user",
-    skip(pool, session)
+    skip(pool, uid)
 )]
 pub async fn get_profile(
     pool: web::Data<DbPool>,
-    session: TypedSession,
+    uid: IsUser
 ) -> Result<HttpResponse, GetProfileError>{
-    let user_id = match session.get("user_id")
-            .context("Failed to get user id")?
-    {
-        Some(user_id) => user_id,
-        None => return Err(anyhow::anyhow!("No user_id found").into())
-    };
-
-    let user_id_uuid = Uuid::parse_str(&user_id).unwrap();
+    let user_id_uuid = uid.0.clone();
     let user_profile_info = get_user_profile_info(&pool, user_id_uuid).await?;
 
     Ok(HttpResponse::Ok().json(user_profile_info))

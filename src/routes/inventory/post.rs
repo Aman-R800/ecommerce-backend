@@ -6,7 +6,7 @@ use serde::Deserialize;
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::{models::InventoryItem, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
+use crate::{jwt_auth::IsAdmin, models::InventoryItem, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
 
 #[derive(Deserialize, Debug)]
 pub struct InventoryForm{
@@ -40,7 +40,8 @@ impl ResponseError for PostInventoryError {
 )]
 pub async fn post_inventory(
     pool: web::Data<DbPool>,
-    form: web::Form<InventoryForm>
+    form: web::Form<InventoryForm>,
+    _: IsAdmin
 ) -> Result<HttpResponse, PostInventoryError>{
 
     let inventory_item = InventoryItem{
