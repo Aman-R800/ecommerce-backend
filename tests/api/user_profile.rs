@@ -1,7 +1,7 @@
 use ecommerce::models::UserProfileInfo;
 use wiremock::{matchers::{header_exists, path}, Mock, ResponseTemplate};
 
-use crate::{helpers::TestApp, registration::ReceiveEmailRequest};
+use crate::{helpers::{LoginResponse, TestApp}, registration::ReceiveEmailRequest};
 
 #[actix_web::test]
 async fn get_profile_without_logged_in_user(){
@@ -69,8 +69,10 @@ async fn get_profile_with_logged_in_user(){
         .await
         .unwrap();
 
+    let login_response_json: LoginResponse = serde_json::from_str(&login_response_body).unwrap();
 
     let response = app.api_client.get(format!("http://{}:{}/user/profile", app.host, app.port))
+                    .bearer_auth(login_response_json.access_token)
                     .send()
                     .await
                     .expect("Failed to send request to user profile endpoint");
@@ -103,7 +105,7 @@ async fn post_profile_with_logged_in_user(){
         .mount_as_scoped(&app.email_api)
         .await;
 
-    let response = app.api_client.post(format!("http://{}:{}/register", app.host, app.port))
+    let _response = app.api_client.post(format!("http://{}:{}/register", app.host, app.port))
                     .form(&body)
                     .send()
                     .await
@@ -128,11 +130,16 @@ async fn post_profile_with_logged_in_user(){
         "password": "testpassword"
     });
 
-    app.api_client.post(format!("http://{}:{}/login", app.host, app.port))
+    let login_response_body = app.api_client.post(format!("http://{}:{}/login", app.host, app.port))
         .form(&login_request)
         .send()
         .await
+        .unwrap()
+        .text()
+        .await
         .unwrap();
+
+    let login_response_json: LoginResponse = serde_json::from_str(&login_response_body).unwrap();
 
     let profile_body = serde_json::json!({
         "phone_number": "8927401349",
@@ -140,6 +147,7 @@ async fn post_profile_with_logged_in_user(){
     });
 
     let post_profile_response = app.api_client.post(format!("http://{}:{}/user/profile", app.host, app.port))
+        .bearer_auth(&login_response_json.access_token)
         .form(&profile_body)
         .send()
         .await
@@ -149,6 +157,7 @@ async fn post_profile_with_logged_in_user(){
 
 
     let response = app.api_client.get(format!("http://{}:{}/user/profile", app.host, app.port))
+                    .bearer_auth(&login_response_json.access_token)
                     .send()
                     .await
                     .expect("Failed to send request to user profile endpoint");

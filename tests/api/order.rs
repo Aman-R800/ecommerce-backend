@@ -40,7 +40,7 @@ pub async fn post_order_creates_order(){
             .unwrap();
     }
 
-    create_user_and_login(&app).await;
+    let access_token = create_user_and_login(&app).await;
 
     let order_data = serde_json::json!([
         {
@@ -62,6 +62,7 @@ pub async fn post_order_creates_order(){
     ]);
 
     let response = app.api_client.post(format!("http://{}:{}/user/order", app.host, app.port))
+        .bearer_auth(access_token)
         .json(&order_data)
         .send()
         .await
@@ -114,7 +115,7 @@ pub async fn get_order_returns_orders(){
             .unwrap();
     }
 
-    create_user_and_login(&app).await;
+    let access_token = create_user_and_login(&app).await;
 
     let order_data = serde_json::json!([
         {
@@ -136,6 +137,7 @@ pub async fn get_order_returns_orders(){
     ]);
 
     let response = app.api_client.post(format!("http://{}:{}/user/order", app.host, app.port))
+        .bearer_auth(&access_token)
         .json(&order_data)
         .send()
         .await
@@ -153,7 +155,7 @@ pub async fn get_order_returns_orders(){
     }
 
     
-    let get_orders = app.get_orders(1, 10)
+    let get_orders = app.get_orders(1, 10, &access_token)
                         .await
                         .json::<Vec<OrderWithItems>>()
                         .await
@@ -191,7 +193,7 @@ async fn concurrent_orders_is_consistent(){
             .unwrap();
     }
 
-    create_user_and_login(&app).await;
+    let access_token = create_user_and_login(&app).await;
 
     let order_data = serde_json::json!([
         {
@@ -220,10 +222,12 @@ async fn concurrent_orders_is_consistent(){
     ]);
 
     let response1 = app.api_client.post(format!("http://{}:{}/user/order", app.host, app.port))
+        .bearer_auth(&access_token)
         .json(&order_data)
         .send();
 
     let response2 = app.api_client.post(format!("http://{}:{}/user/order", app.host, app.port))
+        .bearer_auth(&access_token)
         .json(&order_data2)
         .send();
 
@@ -252,16 +256,14 @@ async fn update_order_status(){
         .execute(&mut conn)
         .unwrap();
 
-    app.login_admin().await;
+    let access_token = app.login_admin().await;
 
     let put_order_request = serde_json::json!({
         "order_id": order_id,
         "status": "shipped"
     });
 
-    dbg!(&order_id);
-
-    let response = app.put_orders(put_order_request).await;
+    let response = app.put_orders(put_order_request, &access_token).await;
     assert_eq!(response.status().as_u16(), 200);
 
     let updated_order: OrderQuery = orders::table
@@ -292,15 +294,13 @@ async fn delete_order_works_for_admin(){
         .execute(&mut conn)
         .unwrap();
 
-    app.login_admin().await;
+    let access_token = app.login_admin().await;
 
     let delete_order_request = serde_json::json!({
         "order_id": order_id,
     });
 
-    dbg!(&order_id);
-
-    let response = app.delete_orders_admin(delete_order_request).await;
+    let response = app.delete_orders_admin(delete_order_request, &access_token).await;
     assert_eq!(response.status().as_u16(), 200);
 
 

@@ -58,7 +58,7 @@ async fn post_login_with_correct_data(){
         .await
         .unwrap();
 
-    let login_response_json = serde_json::from_str::<LoginResponse>(&login_response_body);
+    let _login_response_json = serde_json::from_str::<LoginResponse>(&login_response_body);
 }
 
 #[actix_web::test]
@@ -133,7 +133,5 @@ async fn post_login_with_incorrect_data(){
         .await
         .unwrap();
 
-    dbg!(&login_response);
     assert_eq!(login_response.status().as_u16(), 401);
-    dbg!(&login_response.text().await.unwrap());
 }

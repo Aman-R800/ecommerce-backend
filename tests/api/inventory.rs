@@ -6,7 +6,7 @@ use ecommerce::{models::InventoryItem, schema::inventory};
 pub async fn add_item_to_inventory(){
     let app = TestApp::spawn_app().await;
 
-    app.login_admin().await;
+    let access_token = app.login_admin().await;
 
     let item = serde_json::json!({
         "name" : "example item",
@@ -14,7 +14,7 @@ pub async fn add_item_to_inventory(){
         "price" : "500"
     });
 
-    let response = app.post_inventory(item).await;
+    let response = app.post_inventory(item, access_token).await;
     assert_eq!(response.status().as_u16(), 200);
 
     let mut conn = app.pool.get().unwrap();
@@ -37,7 +37,7 @@ pub async fn add_item_to_inventory(){
 pub async fn get_item_from_inventory(){
     let app = TestApp::spawn_app().await;
 
-    app.login_admin().await;
+    let access_token = app.login_admin().await;
 
     let item = serde_json::json!({
         "name" : "example item",
@@ -45,10 +45,10 @@ pub async fn get_item_from_inventory(){
         "price" : "500"
     });
 
-    let post_response = app.post_inventory(item).await;
+    let _post_response = app.post_inventory(item, access_token).await;
 
     let mut conn = app.pool.get().unwrap();
-    let response: i64 = inventory::table
+    let _response: i64 = inventory::table
         .filter(
             inventory::name.eq("example item")
                 .and(inventory::amount.eq(500 as i32))

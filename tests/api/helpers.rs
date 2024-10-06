@@ -92,7 +92,7 @@ pub struct TestApp{
 }
 
 impl TestApp {
-    pub async fn delete_orders_admin<Body>(&self, body: Body) -> reqwest::Response
+    pub async fn delete_orders_admin<Body>(&self, body: Body, access_token: &String) -> reqwest::Response
     where 
         Body: Serialize
     {
@@ -101,12 +101,13 @@ impl TestApp {
             self.port,
         ))
         .json(&body)
+        .bearer_auth(access_token)
         .send()
         .await
         .unwrap()
     }
 
-    pub async fn put_orders<Body>(&self, body: Body) -> reqwest::Response
+    pub async fn put_orders<Body>(&self, body: Body, access_token: &String) -> reqwest::Response
     where 
         Body: Serialize
     {
@@ -115,22 +116,24 @@ impl TestApp {
             self.port,
         ))
         .form(&body)
+        .bearer_auth(access_token)
         .send()
         .await
         .unwrap()
     }
 
-    pub async fn get_orders_request(&self, page: i64, limit: i64) -> reqwest::RequestBuilder{
+    pub async fn get_orders_request(&self, page: i64, limit: i64, access_token: &String) -> reqwest::RequestBuilder{
         self.api_client.get(format!("http://{}:{}/order?page={}&limit={}",
             self.host,
             self.port,
             page,
             limit
         ))
+        .bearer_auth(access_token)
     }
 
-    pub async fn get_orders(&self, page: i64, limit: i64) -> reqwest::Response{
-        self.get_orders_request(page, limit)
+    pub async fn get_orders(&self, page: i64, limit: i64, access_token: &String) -> reqwest::Response{
+        self.get_orders_request(page, limit, access_token)
             .await
             .send()
             .await
@@ -149,7 +152,7 @@ impl TestApp {
         .unwrap()
     }
 
-    pub async fn login_admin(&self){
+    pub async fn login_admin(&self) -> String {
         let login_request = serde_json::json!({
             "email": self.admin.email,
             "password": self.admin.password
@@ -161,10 +164,11 @@ impl TestApp {
             .await
             .unwrap();
 
-        assert_eq!(login_response.status().as_u16(), 200);
+        let login_response_json: LoginResponse = serde_json::from_str(&login_response.text().await.unwrap()).unwrap();
+        return login_response_json.access_token
     }
     
-    pub async fn post_inventory<Body>(&self, item: Body) -> reqwest::Response
+    pub async fn post_inventory<Body>(&self, item: Body, access_token: String) -> reqwest::Response
     where 
         Body: Serialize
     {
@@ -174,6 +178,7 @@ impl TestApp {
                 self.port
             )
         )
+        .bearer_auth(access_token)
         .form(&item)
         .send()
         .await
@@ -261,7 +266,7 @@ impl TestApp {
 }
 
 
-pub async fn create_user_and_login(app: &TestApp){
+pub async fn create_user_and_login(app: &TestApp) -> String{
     let body = serde_json::json!({
         "email" : "amanrao032@gmail.com",
         "name" : "Aman Rao",
@@ -303,11 +308,12 @@ pub async fn create_user_and_login(app: &TestApp){
         .await
         .unwrap();
 
-    assert_eq!(response.status().as_u16(), 200)
+    let response_json: LoginResponse = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    response_json.access_token
 }
 
 #[derive(Deserialize)]
 pub struct LoginResponse{
-    access_token: String
+    pub access_token: String
 }
 
