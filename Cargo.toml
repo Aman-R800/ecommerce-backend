@@ -8,7 +8,6 @@ name = "ecommerce"
 path = "src/lib.rs"
 
 [dependencies]
-actix-session = { version = "0.10.1", features = ["redis-session-rustls"] }
 actix-web = "4.9.0"
 anyhow = "1.0.89"
 argon2 = { version = "0.5.3", features = ["password-hash"] }
