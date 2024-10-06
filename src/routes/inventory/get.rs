@@ -31,6 +31,10 @@ pub async fn get_inventory(
     Ok(HttpResponse::Ok().json(inventory_items))
 }
 
+#[tracing::instrument(
+    "Getting inventory items from db",
+    skip_all
+)]
 pub async fn get_inventory_items(
     pool: &DbPool,
     page: i64,

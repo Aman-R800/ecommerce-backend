@@ -75,6 +75,10 @@ pub async fn post_profile(
     Ok(HttpResponse::Ok().finish())
 }
 
+#[tracing::instrument(
+    "Updating old info with new info",
+    skip_all
+)]
 pub fn substitute_old_info_with_new(
     mut current_info: UserProfileInfo,
     new_info: ProfileForm
@@ -124,6 +128,9 @@ impl Debug for PostUserProfileInfoError {
     }
 }
 
+#[tracing::instrument(
+    "posting user profile info to db"
+)]
 pub async fn post_user_profile_info(
     pool: &DbPool,
     new_info: UserProfileInfo,

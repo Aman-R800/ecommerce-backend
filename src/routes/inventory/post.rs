@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::{models::InventoryItem, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct InventoryForm{
     name: String,
     amount: i32,
@@ -34,6 +34,10 @@ impl ResponseError for PostInventoryError {
     }
 }
 
+#[tracing::instrument(
+    "Posting items to inventory",
+    skip(pool)
+)]
 pub async fn post_inventory(
     pool: web::Data<DbPool>,
     form: web::Form<InventoryForm>
@@ -68,6 +72,10 @@ impl Debug for InventoryInsertError {
     }
 }
 
+#[tracing::instrument(
+    "Insert an inventory item to db",
+    skip_all
+)]
 pub async fn insert_inventory_items(
     pool: &DbPool,
     inventory_item: InventoryItem

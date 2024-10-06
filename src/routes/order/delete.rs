@@ -6,11 +6,15 @@ use uuid::Uuid;
 
 use crate::{schema::orders, telemetry::spawn_blocking_with_tracing, utils::DbPool};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct DeleteOrderJson{
     pub order_id: Uuid
 }
 
+#[tracing::instrument(
+    "Deleting order by id"
+    skip(pool)
+)]
 pub async fn delete_order(
     pool: web::Data<DbPool>,
     json: web::Json<DeleteOrderJson>

@@ -7,12 +7,16 @@ use uuid::Uuid;
 
 use crate::{models::{Order, OrderItemModel}, session_state::TypedSession, telemetry::spawn_blocking_with_tracing, utils::DbPool};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct OrderItem{
     item_id: Uuid,
     amount: i32
 }
 
+#[tracing::instrument(
+    "Posting order",
+    skip(pool, session)
+)]
 pub async fn post_order(
     pool: web::Data<DbPool>,
     order: web::Json<Vec<OrderItem>>,
@@ -38,6 +42,10 @@ pub async fn post_order(
     ));
 }
 
+#[tracing::instrument(
+    "Creating order in order table and updating inventory",
+    skip_all
+)]
 pub async fn create_order_and_update_inventory(
     pool: &DbPool,
     item_ids: Vec<Uuid>,

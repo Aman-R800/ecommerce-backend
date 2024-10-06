@@ -10,7 +10,7 @@ use crate::utils::DbConnection;
 use crate::{session_state::TypedSession, utils::DbPool};
 use crate::schema::{orders, order_items};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct GetOrderQuery{
     pub page: i64,
     pub limit: i64
@@ -30,6 +30,10 @@ pub struct OrderItem {
     pub quantity: i32,
 }
 
+#[tracing::instrument(
+    "Getting list of orders",
+    skip(pool, session)
+)]
 pub async fn get_order(
     pool: web::Data<DbPool>,
     session: TypedSession,
@@ -62,6 +66,10 @@ pub async fn get_order(
     Ok(HttpResponse::Ok().json(order))
 }
 
+#[tracing::instrument(
+    "Getting order along with associated order_items",
+    skip_all
+)]
 pub async fn get_order_with_items(
     pool: &DbPool,
     page: i64,
@@ -90,6 +98,10 @@ pub async fn get_order_with_items(
     Ok(res)
 }
 
+#[tracing::instrument(
+    "Getting order ids",
+    skip_all
+)]
 pub fn get_order_ids(
     conn: &mut DbConnection,
     is_admin: bool,
@@ -114,6 +126,10 @@ pub fn get_order_ids(
     Ok(result)
 }
 
+#[tracing::instrument(
+    "Getting joined order with order_items by id",
+    skip_all
+)]
 pub fn get_order_with_items_by_id(conn: &mut DbConnection, target_order_id: Uuid) -> Result<OrderWithItems, anyhow::Error> {
     let results: Vec<OrderIntermediate> = orders::table
         .inner_join(order_items::table.on(order_items::order_id.eq(orders::order_id)))
