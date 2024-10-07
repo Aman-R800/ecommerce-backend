@@ -6,7 +6,7 @@ use serde::Deserialize;
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::{jwt_auth::IsAdmin, models::InventoryItem, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
+use crate::{auth::extractors::IsAdmin, models::InventoryItem, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
 
 #[derive(Deserialize, Debug)]
 pub struct InventoryForm{

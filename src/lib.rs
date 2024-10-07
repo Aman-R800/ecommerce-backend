@@ -8,4 +8,5 @@ pub mod models;
 pub mod password;
 pub mod email_client;
 pub mod domain;
-pub mod jwt_auth;
+pub mod auth;
+

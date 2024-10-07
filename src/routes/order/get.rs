@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use diesel::prelude::*;
 
-use crate::jwt_auth::IsUser;
+use crate::auth::extractors::IsUser;
 use crate::models::OrderIntermediate;
 use crate::telemetry::spawn_blocking_with_tracing;
 use crate::utils::DbConnection;

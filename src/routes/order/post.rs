@@ -5,7 +5,7 @@ use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{jwt_auth::IsUser, models::{Order, OrderItemModel}, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{auth::extractors::IsUser, models::{Order, OrderItemModel}, telemetry::spawn_blocking_with_tracing, utils::DbPool};
 
 #[derive(Deserialize, Debug)]
 pub struct OrderItem{

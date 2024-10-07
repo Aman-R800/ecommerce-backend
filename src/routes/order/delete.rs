@@ -4,7 +4,7 @@ use diesel::{Connection, ExpressionMethods, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{jwt_auth::IsUser, schema::orders, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{auth::extractors::IsUser, schema::orders, telemetry::spawn_blocking_with_tracing, utils::DbPool};
 
 #[derive(Deserialize, Debug)]
 pub struct DeleteOrderJson{

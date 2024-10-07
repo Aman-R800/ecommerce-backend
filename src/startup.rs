@@ -6,7 +6,7 @@ use r2d2::Pool;
 use secrecy::SecretString;
 use tracing_actix_web::TracingLogger;
 
-use crate::{configuration::Settings, domain::user_email::UserEmail, email_client::EmailClient, jwt_auth::Tokenizer, routes::{authentication::{login::login, register::register}, confirm::confirm, health_check, inventory::{get_inventory, post_inventory}, order::{delete_order, get_order, post_order, update_order}, profile::{get_profile, post_profile}}};
+use crate::{auth::jwt::Tokenizer, configuration::Settings, domain::user_email::UserEmail, email_client::EmailClient, routes::{authentication::{login::login, register::register}, confirm::confirm, health_check, inventory::{get_inventory, post_inventory}, order::{delete_order, get_order, post_order, update_order}, profile::{get_profile, post_profile}}};
 
 #[derive(Clone)]
 pub struct BaseUrl(pub String);

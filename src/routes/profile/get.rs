@@ -6,7 +6,7 @@ use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use uuid::Uuid;
 use thiserror::Error;
 
-use crate::{jwt_auth::IsUser, models::UserProfileInfo, schema::users, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
+use crate::{auth::extractors::IsUser, models::UserProfileInfo, schema::users, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
 
 #[derive(Error)]
 pub enum GetProfileError {

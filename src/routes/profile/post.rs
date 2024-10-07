@@ -6,7 +6,7 @@ use diesel::{ExpressionMethods, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{domain::{phone_number::PhoneNumberDomain, user_email::UserEmail}, jwt_auth::IsUser, models::UserProfileInfo, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
+use crate::{auth::extractors::IsUser, domain::{phone_number::PhoneNumberDomain, user_email::UserEmail}, models::UserProfileInfo, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
 
 use super::get_user_profile_info;
 

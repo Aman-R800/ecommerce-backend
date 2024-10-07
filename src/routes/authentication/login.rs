@@ -5,7 +5,7 @@ use secrecy::SecretString;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::{domain::user_email::UserEmail, jwt_auth::Tokenizer, models::User, password::verify_password, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{auth::jwt::Tokenizer, domain::user_email::UserEmail, models::User, password::verify_password, telemetry::spawn_blocking_with_tracing, utils::DbPool};
 
 
 #[derive(Deserialize, Debug)]
