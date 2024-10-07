@@ -11,6 +11,7 @@ use crate::schema::confirmation;
 use crate::schema::inventory;
 use crate::schema::orders;
 
+/// Model for users database
 #[derive(Queryable, Insertable)]
 #[diesel(table_name = users)]
 pub struct User{
@@ -22,7 +23,7 @@ pub struct User{
     pub is_admin: bool
 }
 
-
+/// Model for user profile info
 #[derive(Queryable, Insertable, Serialize, Deserialize, Debug)]
 #[diesel(table_name = users)]
 pub struct UserProfileInfo{
@@ -32,6 +33,8 @@ pub struct UserProfileInfo{
     pub address: Option<String>
 }
 
+/// Model for confirmation table records
+/// Mapping confirmation_id to user_id
 #[derive(Queryable, Insertable)]
 #[diesel(table_name = confirmation)]
 pub struct ConfirmationMap{
@@ -39,6 +42,7 @@ pub struct ConfirmationMap{
     pub user_id: Option<Uuid>
 }
 
+/// Model for an Inventory item
 #[derive(Queryable, Insertable, Serialize, Deserialize)]
 #[diesel(table_name = inventory)]
 pub struct InventoryItem{
@@ -48,6 +52,7 @@ pub struct InventoryItem{
     pub price: Option<f64>
 }
 
+/// Model for inserting an order
 #[derive(Insertable)]
 #[diesel(table_name = orders)]
 pub struct Order{
@@ -57,6 +62,7 @@ pub struct Order{
     pub status: String
 }
 
+/// Model for querying an order
 #[derive(Queryable)]
 pub struct OrderQuery{
     pub order_id: Uuid,
@@ -65,6 +71,7 @@ pub struct OrderQuery{
     pub status: String
 }
 
+/// Model for an order_item
 #[derive(Queryable, Insertable)]
 #[diesel(table_name = order_items)]
 pub struct OrderItemModel{
@@ -74,6 +81,7 @@ pub struct OrderItemModel{
     pub quantity: i32
 }
 
+/// Model for inner join between order_item and order
 #[derive(Queryable)]
 pub struct OrderIntermediate{
     pub order_id: Uuid,

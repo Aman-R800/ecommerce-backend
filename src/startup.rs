@@ -54,27 +54,33 @@ impl Application {
         let server = HttpServer::new(move || {
             App::new()
                 .wrap(TracingLogger::default())
-                .route("/health", web::get().to(health_check))
-                .route("/register", web::post().to(register))
-                .route("/confirm", web::get().to(confirm))
-                .route("/login", web::post().to(login))
-                .route("/inventory", web::get().to(get_inventory))
-                .route("/order", web::get().to(get_order))
+                .route("/health", web::get().to(health_check)) // Route to check if api is running
+                .route("/register", web::post().to(register)) // Route for user to register
+                .route("/confirm", web::get().to(confirm)) // Confirmation endpoint for user
+                .route("/login", web::post().to(login)) // Route for user to login
+                .route("/inventory", web::get().to(get_inventory)) // Route to view items available
+                .route("/order", web::get().to(get_order)) // Route to view order details
                 .service(web::scope("/user")
-                    .route("/profile", web::get().to(get_profile))
-                    .route("/profile", web::post().to(post_profile))
-                    .route("/order", web::post().to(post_order))
-                    .route("/order", web::delete().to(delete_order))
+                    .route("/profile", web::get().to(get_profile)) // Route to view user profile
+                                                                   // details
+
+                    .route("/profile", web::post().to(post_profile)) // Route to post user profile
+                                                                     // details
+
+                    .route("/order", web::post().to(post_order)) // Route to create an order
+                    .route("/order", web::delete().to(delete_order)) // Route to delete an order
                 )
                 .service(web::scope("/admin")
-                    .route("/inventory", web::post().to(post_inventory))
-                    .route("/order", web::put().to(update_order))
-                    .route("/order", web::delete().to(delete_order))
+                    .route("/inventory", web::post().to(post_inventory)) // Route to post items to
+                                                                         // inventory
+
+                    .route("/order", web::put().to(update_order)) // Route to update order status
+                    .route("/order", web::delete().to(delete_order)) // Route to delete an order
                 )
-                .app_data(Data::new(pool.clone()))
-                .app_data(Data::new(email_client.clone()))
-                .app_data(Data::new(base_url.clone()))
-                .app_data(Data::new(tokenizer.clone()))
+                .app_data(Data::new(pool.clone())) // Database Connection Pool
+                .app_data(Data::new(email_client.clone())) // Email Client
+                .app_data(Data::new(base_url.clone())) // Base URL
+                .app_data(Data::new(tokenizer.clone())) // JWT encoder and decoder
         })
         .listen(listener)?
         .run();
