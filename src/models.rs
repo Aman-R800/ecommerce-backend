@@ -12,7 +12,7 @@ use crate::schema::inventory;
 use crate::schema::orders;
 
 /// Model for users database
-#[derive(Queryable, Insertable)]
+#[derive(Queryable, Insertable, Clone)]
 #[diesel(table_name = users)]
 pub struct User{
     pub user_id : Uuid,
