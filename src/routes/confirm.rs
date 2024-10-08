@@ -4,7 +4,7 @@ use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{models::ConfirmationMap, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{models::ConfirmationMap, telemetry::spawn_blocking_with_tracing, utils::{get_pooled_connection, DbPool}};
 
 #[derive(Deserialize, Debug)]
 pub struct Confirmation{
@@ -39,10 +39,10 @@ pub async fn confirm(
     "Get user_id from confirmation_id",
     skip(pool)
 )]
-async fn get_user_id(confirmation_id: Uuid, pool: &DbPool) -> Result<Uuid, anyhow::Error>{
+async fn get_user_id(confirmation_id: Uuid, pool: &web::Data<DbPool>) -> Result<Uuid, anyhow::Error>{
     use crate::schema::confirmation;
 
-    let mut conn = pool.get()?;
+    let mut conn = get_pooled_connection(pool).await?;
 
     let temp: ConfirmationMap = spawn_blocking_with_tracing(move ||{
         confirmation::table
@@ -62,10 +62,10 @@ async fn get_user_id(confirmation_id: Uuid, pool: &DbPool) -> Result<Uuid, anyho
     "Set user status to confirm",
     skip(pool)
 )]
-async fn set_status_confirm(user_id: Uuid, pool: &DbPool) -> Result<(), anyhow::Error>{
+async fn set_status_confirm(user_id: Uuid, pool: &web::Data<DbPool>) -> Result<(), anyhow::Error>{
     use crate::schema::users;
 
-    let mut conn = pool.get()?;
+    let mut conn = get_pooled_connection(pool).await?;
 
     spawn_blocking_with_tracing(move || {
         diesel::update(users::table)

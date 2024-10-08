@@ -4,7 +4,7 @@ use diesel::{Connection, ExpressionMethods, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{auth::extractors::IsUser, schema::orders, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{auth::extractors::IsUser, schema::orders, telemetry::spawn_blocking_with_tracing, utils::{get_pooled_connection, DbPool}};
 
 #[derive(Deserialize, Debug)]
 pub struct DeleteOrderJson{
@@ -20,11 +20,13 @@ pub async fn delete_order(
     json: web::Json<DeleteOrderJson>,
     _: IsUser
 ) -> Result<HttpResponse, actix_web::Error>{
-    let mut conn = pool.get().map_err(|_|{
-        ErrorInternalServerError(
-            anyhow::anyhow!("Failed due to internal error")
-        )
-    })?;
+    let mut conn = get_pooled_connection(&pool)
+                    .await
+                    .map_err(|_|{
+                        ErrorInternalServerError(
+                            anyhow::anyhow!("Failed due to internal error")
+                        )
+                    })?;
 
     spawn_blocking_with_tracing(move || {
         conn.transaction::<(), anyhow::Error, _>(|conn| {

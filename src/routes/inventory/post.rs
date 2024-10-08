@@ -6,7 +6,7 @@ use serde::Deserialize;
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::{auth::extractors::IsAdmin, models::InventoryItem, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
+use crate::{auth::extractors::IsAdmin, models::InventoryItem, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, get_pooled_connection, DbPool, PoolGetError}};
 
 #[derive(Deserialize, Debug)]
 pub struct InventoryForm{
@@ -78,10 +78,17 @@ impl Debug for InventoryInsertError {
     skip_all
 )]
 pub async fn insert_inventory_items(
-    pool: &DbPool,
+    pool: &web::Data<DbPool>,
     inventory_item: InventoryItem
 ) -> Result<(), InventoryInsertError> {
-    let mut conn = pool.get()?;
+    let mut conn = get_pooled_connection(pool)
+                    .await
+                    .map_err(|e|
+                        match e {
+                            PoolGetError::ThreadpoolError(r) => InventoryInsertError::ThreadpoolError(r),
+                            PoolGetError::DbPoolError(r) => InventoryInsertError::DbPoolError(r)
+                        }
+                    )?;
 
     spawn_blocking_with_tracing(move || {
         use crate::schema::inventory;

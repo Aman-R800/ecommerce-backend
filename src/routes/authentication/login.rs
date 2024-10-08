@@ -5,7 +5,7 @@ use secrecy::SecretString;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::{auth::jwt::Tokenizer, domain::user_email::UserEmail, models::User, password::verify_password, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{auth::jwt::Tokenizer, domain::user_email::UserEmail, models::User, password::verify_password, telemetry::spawn_blocking_with_tracing, utils::{get_pooled_connection, DbPool}};
 
 
 #[derive(Deserialize, Debug)]
@@ -55,8 +55,8 @@ pub async fn login(
 #[tracing::instrument(
     "Getting user info from email"
 )]
-pub async fn get_user_info(pool: &DbPool, email: &UserEmail) -> Result<Option<User>, anyhow::Error>{
-    let mut conn = pool.get()?;
+pub async fn get_user_info(pool: &web::Data<DbPool>, email: &UserEmail) -> Result<Option<User>, anyhow::Error>{
+    let mut conn = get_pooled_connection(pool).await?;
     let email_string = email.0.clone();
 
     let user = spawn_blocking_with_tracing(move || {

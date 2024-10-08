@@ -6,7 +6,7 @@ use diesel::{ExpressionMethods, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{auth::extractors::IsUser, domain::{phone_number::PhoneNumberDomain, user_email::UserEmail}, models::UserProfileInfo, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
+use crate::{auth::extractors::IsUser, domain::{phone_number::PhoneNumberDomain, user_email::UserEmail}, models::UserProfileInfo, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, get_pooled_connection, DbPool, PoolGetError}};
 
 use super::get_user_profile_info;
 
@@ -124,12 +124,19 @@ impl Debug for PostUserProfileInfoError {
     "posting user profile info to db"
 )]
 pub async fn post_user_profile_info(
-    pool: &DbPool,
+    pool: &web::Data<DbPool>,
     new_info: UserProfileInfo,
     user_id: Uuid
 ) -> Result<(), PostUserProfileInfoError>{
 
-    let mut conn = pool.get()?;
+    let mut conn = get_pooled_connection(pool)
+                    .await
+                    .map_err(|e|{
+                        match e {
+                            PoolGetError::DbPoolError(r) => PostUserProfileInfoError::DbPoolError(r),
+                            PoolGetError::ThreadpoolError(r) => PostUserProfileInfoError::ThreadpoolError(r)
+                        }
+                    })?;
 
     spawn_blocking_with_tracing(move || {
         use crate::schema::users;

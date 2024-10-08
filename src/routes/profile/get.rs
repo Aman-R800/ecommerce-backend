@@ -6,7 +6,7 @@ use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use uuid::Uuid;
 use thiserror::Error;
 
-use crate::{auth::extractors::IsUser, models::UserProfileInfo, schema::users, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
+use crate::{auth::extractors::IsUser, models::UserProfileInfo, schema::users, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, get_pooled_connection, DbPool}};
 
 #[derive(Error)]
 pub enum GetProfileError {
@@ -46,11 +46,10 @@ pub async fn get_profile(
     skip(pool)
 )]
 pub async fn get_user_profile_info(
-    pool: &DbPool,
+    pool: &web::Data<DbPool>,
     user_id: Uuid
 ) -> Result<UserProfileInfo, anyhow::Error>{
-    let mut conn = pool.get()
-                    .context("Failed to get connection from pool")?;
+    let mut conn = get_pooled_connection(pool).await?;
 
     Ok(spawn_blocking_with_tracing(move || {
         users::table.select((

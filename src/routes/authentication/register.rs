@@ -8,7 +8,7 @@ use thiserror::Error;
 use diesel::prelude::*;
 use uuid::Uuid;
 
-use crate::{domain::user_email::UserEmail, email_client::EmailClient, models::{ConfirmationMap, User}, password::compute_password_hash, startup::BaseUrl, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbPool}};
+use crate::{domain::user_email::UserEmail, email_client::EmailClient, models::{ConfirmationMap, User}, password::compute_password_hash, startup::BaseUrl, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, get_pooled_connection, DbPool}};
 
 #[tracing::instrument(
     "User registration started",
@@ -105,7 +105,7 @@ impl Debug for UserInsertError {
     skip(pool)
 )]
 pub async fn insert_user_into_database(
-    pool: &DbPool,
+    pool: &web::Data<DbPool>,
     name: String,
     email: String,
     password: SecretString
@@ -129,10 +129,10 @@ pub async fn insert_user_into_database(
         is_admin: false
     };
 
-    let mut conn = pool.get()
-                .context("Failed to get connection from pool")
-                .map_err(UserInsertError::UnexpectedError)?;
-
+    let mut conn = get_pooled_connection(pool)
+                    .await
+                    .context("Failed to get connection from pool within spawned task")
+                    .map_err(UserInsertError::UnexpectedError)?;
 
     let confirmation_id = {
         use crate::schema::users::dsl::*;

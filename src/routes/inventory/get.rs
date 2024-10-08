@@ -3,7 +3,7 @@ use anyhow::Context;
 use diesel::{QueryDsl, RunQueryDsl};
 use serde::Deserialize;
 
-use crate::{models::InventoryItem, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{models::InventoryItem, telemetry::spawn_blocking_with_tracing, utils::{get_pooled_connection, DbPool}};
 
 #[derive(Deserialize, Debug)]
 pub struct GetInventoryQuery {
@@ -36,11 +36,11 @@ pub async fn get_inventory(
     skip_all
 )]
 pub async fn get_inventory_items(
-    pool: &DbPool,
+    pool: &web::Data<DbPool>,
     page: i64,
     limit: i64
 ) -> Result<Vec<InventoryItem>, anyhow::Error>{
-    let mut conn = pool.get()?;
+    let mut conn = get_pooled_connection(pool).await?;
     let offset_value = (page - 1) * limit;
 
     let res = spawn_blocking_with_tracing(move || {

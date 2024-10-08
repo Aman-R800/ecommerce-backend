@@ -5,7 +5,7 @@ use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{auth::extractors::IsUser, models::{Order, OrderItemModel}, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{auth::extractors::IsUser, models::{Order, OrderItemModel}, telemetry::spawn_blocking_with_tracing, utils::{get_pooled_connection, DbPool}};
 
 #[derive(Deserialize, Debug)]
 pub struct OrderItem{
@@ -44,12 +44,12 @@ pub async fn post_order(
     skip_all
 )]
 pub async fn create_order_and_update_inventory(
-    pool: &DbPool,
+    pool: &web::Data<DbPool>,
     item_ids: Vec<Uuid>,
     amounts: Vec<i32>,
     user_id: Uuid
 ) -> Result<Vec<Uuid>, anyhow::Error> {
-    let mut conn = pool.get()?;
+    let mut conn = get_pooled_connection(pool).await?;
 
     let ret: Vec<Uuid> = spawn_blocking_with_tracing(move || {
         use crate::schema::inventory;

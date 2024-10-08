@@ -4,7 +4,7 @@ use diesel::{Connection, ExpressionMethods, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{auth::extractors::IsAdmin, schema::orders, telemetry::spawn_blocking_with_tracing, utils::DbPool};
+use crate::{auth::extractors::IsAdmin, schema::orders, telemetry::spawn_blocking_with_tracing, utils::{get_pooled_connection, DbPool}};
 
 #[derive(Deserialize, Debug)]
 pub struct UpdateOrderStatusForm{
@@ -29,8 +29,9 @@ pub async fn update_order(
     form: web::Form<UpdateOrderStatusForm>,
     _: IsAdmin
 ) -> Result<HttpResponse, actix_web::Error>{
-    let mut conn = pool.get()
-        .map_err(|_| ErrorInternalServerError(anyhow::anyhow!("Failed due to internal error")))?;
+    let mut conn = get_pooled_connection(&pool)
+                    .await
+                    .map_err(|_| ErrorInternalServerError(anyhow::anyhow!("Failed due to internal error")))?;
 
     dbg!(&form.order_id);
 

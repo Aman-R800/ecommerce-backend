@@ -7,6 +7,7 @@ use diesel::prelude::*;
 use crate::auth::extractors::IsUser;
 use crate::models::OrderIntermediate;
 use crate::telemetry::spawn_blocking_with_tracing;
+use crate::utils::get_pooled_connection;
 use crate::utils::DbConnection;
 use crate::utils::DbPool;
 use crate::schema::{orders, order_items};
@@ -61,13 +62,13 @@ pub async fn get_order(
     skip_all
 )]
 pub async fn get_order_with_items(
-    pool: &DbPool,
+    pool: &web::Data<DbPool>,
     page: i64,
     limit: i64,
     user_id: Uuid,
     is_admin: bool
 ) -> Result<Vec<OrderWithItems>, anyhow::Error> {
-    let mut conn = pool.get()?;
+    let mut conn = get_pooled_connection(pool).await?;
 
     let res = spawn_blocking_with_tracing(move || {
         conn.transaction::<Vec<OrderWithItems>, anyhow::Error, _>(|conn|{
