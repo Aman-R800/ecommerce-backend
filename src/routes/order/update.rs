@@ -1,10 +1,8 @@
 use actix_web::{error::ErrorInternalServerError, web, HttpResponse};
-use anyhow::Context;
-use diesel::{Connection, ExpressionMethods, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{auth::extractors::IsAdmin, schema::orders, telemetry::spawn_blocking_with_tracing, utils::{get_pooled_connection, DbPool}};
+use crate::{auth::extractors::IsAdmin, db_interaction::update_order_status, utils::{get_pooled_connection, DbPool}};
 
 #[derive(Deserialize, Debug)]
 pub struct UpdateOrderStatusForm{
@@ -29,35 +27,16 @@ pub async fn update_order(
     form: web::Form<UpdateOrderStatusForm>,
     _: IsAdmin
 ) -> Result<HttpResponse, actix_web::Error>{
-    let mut conn = get_pooled_connection(&pool)
+    let conn = get_pooled_connection(&pool)
                     .await
                     .map_err(|_| ErrorInternalServerError(anyhow::anyhow!("Failed due to internal error")))?;
 
-    dbg!(&form.order_id);
-
-    spawn_blocking_with_tracing(move || {
-        conn.transaction::<(), anyhow::Error, _>(|conn| {
-            let status = match form.status {
-                OrderStatus::Pending => "pending",
-                OrderStatus::Shipped => "shipped",
-                OrderStatus::Delivered => "delivered"
-            }.to_string();
-
-            let affected_rows = diesel::update(orders::table)
-                                    .filter(orders::order_id.eq(form.order_id))
-                                    .set(orders::status.eq(status))
-                                    .execute(conn)
-                                    .context("Failed to update status")?;
-
-            if affected_rows == 0 {
-                return Err(anyhow::anyhow!("order_id doesn't exist"));
-            }
-            
-            Ok(())
-        })
-    })
+    update_order_status(
+        conn,
+        form.0.status,
+        form.0.order_id
+    )
     .await
-    .map_err(|_| ErrorInternalServerError(anyhow::anyhow!("Failed due to internal error")))?
     .map_err(ErrorInternalServerError)?;
 
     Ok(HttpResponse::Ok().finish())

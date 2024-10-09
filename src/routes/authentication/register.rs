@@ -1,14 +1,12 @@
 use std::{error::Error, fmt::Debug};
 
 use actix_web::{web, HttpRequest, HttpResponse, ResponseError};
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use thiserror::Error;
-use diesel::prelude::*;
-use uuid::Uuid;
 
-use crate::{domain::user_email::UserEmail, email_client::EmailClient, models::{ConfirmationMap, User}, password::compute_password_hash, startup::BaseUrl, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, get_pooled_connection, DbPool}};
+use crate::{db_interaction::{insert_user_into_database, UserInsertError}, domain::user_email::UserEmail, email_client::EmailClient, startup::BaseUrl, utils::{error_fmt_chain, get_pooled_connection, DbPool}};
 
 #[tracing::instrument(
     "User registration started",
@@ -31,7 +29,12 @@ pub async fn register(
         Err(e) => return Ok(HttpResponse::BadRequest().body(e))
     };
 
-    let confirmation_id = insert_user_into_database(&pool, form.0.name, form.0.email, form.0.password)
+    let conn = get_pooled_connection(&pool)
+                .await
+                .context("Failed to get connection from pool from within spawned task")
+                .map_err(RegisterError::UnexpectedError)?;
+
+    let confirmation_id = insert_user_into_database(conn, form.0.name, form.0.email, form.0.password)
         .await
         .map_err(|e| {
             match e {
@@ -83,99 +86,4 @@ impl ResponseError for RegisterError{
     fn error_response(&self) -> HttpResponse<actix_web::body::BoxBody> {
         HttpResponse::BadRequest().body(format!("{}", self))
     }
-}
-
-#[derive(Error)]
-pub enum UserInsertError{
-    #[error("email field is not unique")]
-    EmailNotUnique(#[source] anyhow::Error),
-    #[error("unexpected database / hashing error occured")]
-    UnexpectedError(#[from] anyhow::Error)
-}
-
-impl Debug for UserInsertError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)?;
-        error_fmt_chain(f, &self.source())
-    }
-}
-
-#[tracing::instrument(
-    "Inserting user into the database",
-    skip(pool)
-)]
-pub async fn insert_user_into_database(
-    pool: &web::Data<DbPool>,
-    name: String,
-    email: String,
-    password: SecretString
-) -> Result<Uuid, UserInsertError> {
-
-    let password_hash = spawn_blocking_with_tracing(move || {
-        compute_password_hash(password)
-    })
-    .await
-    .context("Failed due to threadpool error")
-    .map_err(UserInsertError::UnexpectedError)?
-    .map_err(UserInsertError::UnexpectedError)?;
-
-    let uid = Uuid::new_v4();
-    let user = User{
-        user_id: uid.clone(),
-        name,
-        email,
-        password: password_hash.expose_secret().to_string(),
-        status: Some("pending".to_string()),
-        is_admin: false
-    };
-
-    let mut conn = get_pooled_connection(pool)
-                    .await
-                    .context("Failed to get connection from pool within spawned task")
-                    .map_err(UserInsertError::UnexpectedError)?;
-
-    let confirmation_id = {
-        use crate::schema::users::dsl::*;
-        use crate::schema::confirmation::dsl::*;
-        spawn_blocking_with_tracing(move || {
-            conn.transaction::<_, anyhow::Error, _>(|conn| {
-            
-                diesel::insert_into(users)
-                    .values(user)
-                    .execute(conn)
-                    .map_err(|e|{
-                        match e {
-                            diesel::result::Error::DatabaseError(
-                                diesel::result::DatabaseErrorKind::UniqueViolation,
-                                a
-                            ) => {
-                                UserInsertError::EmailNotUnique(anyhow::anyhow!(a.message().to_string()))
-                            },
-
-                            _ => UserInsertError::UnexpectedError(anyhow!("Unexpected diesel / database error"))
-                        }
-                    })?;
-
-                let id = Uuid::new_v4();
-
-                let conf = ConfirmationMap{
-                    confirmation_id: id.clone(),
-                    user_id: Some(uid)
-                };
-
-                diesel::insert_into(confirmation)
-                    .values(conf)
-                    .execute(conn)
-                    .map_err(|_| UserInsertError::UnexpectedError(anyhow!("Unexpected diesel / database error")))?;
-
-                Ok(id)
-            })
-        })
-        .await
-        .context("Failed due to threadpool error")
-        .map_err(UserInsertError::UnexpectedError)??
-    };
-
-    
-    Ok(confirmation_id)
 }

@@ -1,12 +1,13 @@
 use std::{error::Error, fmt::Debug};
 
 use actix_web::{web, HttpResponse, ResponseError};
-use diesel::RunQueryDsl;
+use anyhow::Context;
 use serde::Deserialize;
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::{auth::extractors::IsAdmin, models::InventoryItem, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, get_pooled_connection, DbPool, PoolGetError}};
+use crate::{auth::extractors::IsAdmin, db_interaction::insert_inventory_items, models::InventoryItem, utils::{error_fmt_chain, get_pooled_connection, DbPool}};
+use crate::db_interaction::InventoryInsertError;
 
 #[derive(Deserialize, Debug)]
 pub struct InventoryForm{
@@ -18,7 +19,9 @@ pub struct InventoryForm{
 #[derive(Error)]
 pub enum PostInventoryError{
     #[error("Failed to insert item to inventory")]
-    InsertInventoryError(#[from] InventoryInsertError)
+    InsertInventoryError(#[from] InventoryInsertError),
+    #[error("Failed due to internal server error")]
+    UnexpectedError(#[from] anyhow::Error)
 }
 
 impl Debug for PostInventoryError {
@@ -51,55 +54,11 @@ pub async fn post_inventory(
         price: Some(form.price)
     };
 
-    insert_inventory_items(&pool, inventory_item).await?;
+    let conn = get_pooled_connection(&pool)
+                .await
+                .context("Failed to get connection from pool from within spawned task")?;
+
+    insert_inventory_items(conn, inventory_item).await?;
 
     Ok(HttpResponse::Ok().finish())
-}
-
-#[derive(Error)]
-pub enum InventoryInsertError{
-    #[error("Failed due to threadpool error")]
-    ThreadpoolError(#[from] tokio::task::JoinError),
-    #[error("Failed to get connection from pool")]
-    DbPoolError(#[from] r2d2::Error),
-    #[error("Failed to insert into inventory table")]
-    InsertError(#[from] diesel::result::Error)
-}
-
-impl Debug for InventoryInsertError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)?;
-        error_fmt_chain(f, &self.source())
-    }
-}
-
-#[tracing::instrument(
-    "Insert an inventory item to db",
-    skip_all
-)]
-pub async fn insert_inventory_items(
-    pool: &web::Data<DbPool>,
-    inventory_item: InventoryItem
-) -> Result<(), InventoryInsertError> {
-    let mut conn = get_pooled_connection(pool)
-                    .await
-                    .map_err(|e|
-                        match e {
-                            PoolGetError::ThreadpoolError(r) => InventoryInsertError::ThreadpoolError(r),
-                            PoolGetError::DbPoolError(r) => InventoryInsertError::DbPoolError(r)
-                        }
-                    )?;
-
-    spawn_blocking_with_tracing(move || {
-        use crate::schema::inventory;
-
-        diesel::insert_into(
-            inventory::table
-        )
-        .values(inventory_item)
-        .execute(&mut conn)
-    })
-    .await??;
-
-    Ok(())
 }

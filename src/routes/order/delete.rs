@@ -1,10 +1,8 @@
 use actix_web::{error::ErrorInternalServerError, web, HttpResponse};
-use anyhow::Context;
-use diesel::{Connection, ExpressionMethods, RunQueryDsl};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{auth::extractors::IsUser, schema::orders, telemetry::spawn_blocking_with_tracing, utils::{get_pooled_connection, DbPool}};
+use crate::{auth::extractors::IsUser, db_interaction::delete_order_from_database, utils::{get_pooled_connection, DbPool}};
 
 #[derive(Deserialize, Debug)]
 pub struct DeleteOrderJson{
@@ -20,7 +18,7 @@ pub async fn delete_order(
     json: web::Json<DeleteOrderJson>,
     _: IsUser
 ) -> Result<HttpResponse, actix_web::Error>{
-    let mut conn = get_pooled_connection(&pool)
+    let conn = get_pooled_connection(&pool)
                     .await
                     .map_err(|_|{
                         ErrorInternalServerError(
@@ -28,20 +26,9 @@ pub async fn delete_order(
                         )
                     })?;
 
-    spawn_blocking_with_tracing(move || {
-        conn.transaction::<(), anyhow::Error, _>(|conn| {
-
-            diesel::delete(orders::table)
-                .filter(orders::order_id.eq(json.order_id))
-                .execute(conn)
-                .context("Failed to delete order")?;
-            
-            Ok(())
-        })
-    })
-    .await
-    .map_err(|_| ErrorInternalServerError(anyhow::anyhow!("Failed due to internal error")))?
-    .map_err(ErrorInternalServerError)?;
+    delete_order_from_database(conn, json.order_id)
+        .await
+        .map_err(ErrorInternalServerError)?;
 
     Ok(HttpResponse::Ok().finish())
 }

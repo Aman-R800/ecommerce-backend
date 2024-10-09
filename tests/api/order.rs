@@ -1,6 +1,6 @@
 use chrono::Utc;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
-use ecommerce::{models::{InventoryItem, Order, OrderQuery}, routes::order::get::OrderWithItems, schema::{inventory, orders}};
+use ecommerce::{models::{InventoryItem, Order, OrderQuery}, db_interaction::OrderWithItems, schema::{inventory, orders}};
 use uuid::Uuid;
 
 use crate::helpers::{create_user_and_login, TestApp};

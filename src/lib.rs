@@ -9,4 +9,5 @@ pub mod password;
 pub mod email_client;
 pub mod domain;
 pub mod auth;
+pub mod db_interaction;
 

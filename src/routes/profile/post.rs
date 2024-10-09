@@ -2,13 +2,11 @@ use std::fmt::Debug;
 use std::error::Error;
 
 use actix_web::{web, HttpResponse, ResponseError};
-use diesel::{ExpressionMethods, RunQueryDsl};
+use anyhow::Context;
 use serde::Deserialize;
-use uuid::Uuid;
 
-use crate::{auth::extractors::IsUser, domain::{phone_number::PhoneNumberDomain, user_email::UserEmail}, models::UserProfileInfo, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, get_pooled_connection, DbPool, PoolGetError}};
-
-use super::get_user_profile_info;
+use crate::{auth::extractors::IsUser, db_interaction::{post_user_profile_info, PostUserProfileInfoError}, domain::{phone_number::PhoneNumberDomain, user_email::UserEmail}, models::UserProfileInfo, utils::{error_fmt_chain, DbPool}};
+use crate::db_interaction::get_user_profile_info;
 
 #[derive(Deserialize)]
 pub struct ProfileForm{
@@ -52,11 +50,17 @@ pub async fn post_profile(
 ) -> Result<HttpResponse, PostProfileError>{
     let user_id = uid.0;
 
-    let info = get_user_profile_info(&pool, user_id.clone()).await?;
+    let conn = pool.get()
+                .context("Failed to get connection from pool from within spawned task")?;
+
+    let info = get_user_profile_info(conn, user_id.clone()).await?;
     let new_info = substitute_old_info_with_new(info, form.0)
                         .map_err(PostProfileError::InvalidEmailOrPhoneNumber)?;
+
+    let conn = pool.get()
+                .context("Failed to get connection from pool from within spawned task")?;
     
-    post_user_profile_info(&pool, new_info, user_id).await
+    post_user_profile_info(conn, new_info, user_id).await
         .map_err(|e|{
             match e {
                 PostUserProfileInfoError::QueryError(_) => PostProfileError::EmailNotUnique(e),
@@ -101,56 +105,4 @@ pub fn substitute_old_info_with_new(
     current_info.address = new_info.address;
     
     Ok(current_info)
-}
-
-#[derive(thiserror::Error)]
-pub enum PostUserProfileInfoError{
-    #[error("Failed to get connection from pool")]
-    DbPoolError(#[from] r2d2::Error),
-    #[error("Failed due to threadpool error")]
-    ThreadpoolError(#[from] tokio::task::JoinError),
-    #[error("Failed due to database error")]
-    QueryError(#[from] diesel::result::Error)
-}
-
-impl Debug for PostUserProfileInfoError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)?;
-        error_fmt_chain(f, &self.source())
-    }
-}
-
-#[tracing::instrument(
-    "posting user profile info to db"
-)]
-pub async fn post_user_profile_info(
-    pool: &web::Data<DbPool>,
-    new_info: UserProfileInfo,
-    user_id: Uuid
-) -> Result<(), PostUserProfileInfoError>{
-
-    let mut conn = get_pooled_connection(pool)
-                    .await
-                    .map_err(|e|{
-                        match e {
-                            PoolGetError::DbPoolError(r) => PostUserProfileInfoError::DbPoolError(r),
-                            PoolGetError::ThreadpoolError(r) => PostUserProfileInfoError::ThreadpoolError(r)
-                        }
-                    })?;
-
-    spawn_blocking_with_tracing(move || {
-        use crate::schema::users;
-        diesel::update(users::table)
-            .set((
-                users::email.eq(new_info.email),
-                users::name.eq(new_info.name),
-                users::phone_number.eq(new_info.phone_number),
-                users::address.eq(new_info.address)
-            ))
-            .filter(users::user_id.eq(user_id))
-            .execute(&mut conn)
-    })
-    .await??;
-    
-    Ok(())
 }

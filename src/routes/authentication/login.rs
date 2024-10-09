@@ -1,11 +1,9 @@
 use actix_web::{error::{ErrorBadRequest, ErrorInternalServerError, ErrorUnauthorized}, web, HttpResponse};
-use anyhow::Context;
-use diesel::{ExpressionMethods, QueryDsl, QueryResult, RunQueryDsl};
 use secrecy::SecretString;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::{auth::jwt::Tokenizer, domain::user_email::UserEmail, models::User, password::verify_password, telemetry::spawn_blocking_with_tracing, utils::{get_pooled_connection, DbPool}};
+use crate::{auth::jwt::Tokenizer, db_interaction::get_user_from_email, domain::user_email::UserEmail, models::User, password::verify_password, utils::{get_pooled_connection, DbPool}};
 
 
 #[derive(Deserialize, Debug)]
@@ -56,27 +54,10 @@ pub async fn login(
     "Getting user info from email"
 )]
 pub async fn get_user_info(pool: &web::Data<DbPool>, email: &UserEmail) -> Result<Option<User>, anyhow::Error>{
-    let mut conn = get_pooled_connection(pool).await?;
+    let conn = get_pooled_connection(pool).await?;
     let email_string = email.0.clone();
 
-    let user = spawn_blocking_with_tracing(move || {
-        use crate::schema::users;
-
-        let res: QueryResult<User> = users::table.select((
-            users::user_id,
-            users::name,
-            users::email,
-            users::password,
-            users::status,
-            users::is_admin
-        ))
-        .filter(users::email.eq(email_string))
-        .get_result::<User>(&mut conn);
-
-        res
-    })
-    .await
-    .context("Failed due to threadpool error")?;
+    let user = get_user_from_email(conn, email_string).await?;
 
     match user{
         Ok(r) => Ok(Some(r)),
