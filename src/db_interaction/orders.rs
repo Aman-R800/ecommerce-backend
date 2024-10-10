@@ -82,7 +82,8 @@ pub fn get_order_ids(
     let result = query.select(orders::order_id)
         .limit(limit)
         .offset(offset_value)
-        .load::<Uuid>(conn)?;
+        .load::<Uuid>(conn)
+        .context("Failed to load order_ids")?;
 
     Ok(result)
 }
@@ -119,7 +120,7 @@ pub fn get_order_with_items_by_id(conn: &mut DbConnection, target_order_id: Uuid
             order_items::quantity,
         ))
         .load::<OrderIntermediate>(conn)
-        .context("Failed to get order items")?;
+        .context("Failed to get order items by order_id")?;
 
     // Group items by order and create OrderWithItems structure
     let mut items = Vec::new();
@@ -143,7 +144,7 @@ pub fn get_order_with_items_by_id(conn: &mut DbConnection, target_order_id: Uuid
         order.items = items;
         Ok(order)
     } else {
-        Err(anyhow::anyhow!("Failed to construct order"))
+        Err(anyhow::anyhow!("No items found for order"))
     }
 }
 
