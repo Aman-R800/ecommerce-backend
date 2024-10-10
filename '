@@ -194,7 +194,8 @@ pub async fn create_order_and_update_inventory(
                     )
                     .set(inventory::amount.eq(inventory::amount - amounts[i]))
                     .filter(inventory::amount.ge(amounts[i]))
-                    .execute(conn)?;
+                    .execute(conn)
+                    .context("Failed to update inventory value")?;
 
 
                 if affected_rows > 0 {
@@ -218,7 +219,8 @@ pub async fn create_order_and_update_inventory(
             
             diesel::insert_into(orders::table)
                 .values(&order)
-                .execute(conn)?;
+                .execute(conn)
+                .context("Failed to create order")?;
 
             // End of creating order
             
@@ -235,7 +237,8 @@ pub async fn create_order_and_update_inventory(
 
                 diesel::insert_into(order_items::table)
                     .values(order_item)
-                    .execute(conn)?;
+                    .execute(conn)
+                    .context(format!("Failed to create order_item: {}", item_id))?;
             }
 
             // End of creating order_items 
