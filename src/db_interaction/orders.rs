@@ -248,14 +248,31 @@ pub async fn create_order_and_update_inventory(
     Ok(ret)
 }
 
+#[derive(Error)]
+pub enum UpdateOrderStatusError{
+    #[error("Tokio threadpool error occured")]
+    ThreadpoolError(#[from] tokio::task::JoinError),
+    #[error("Failed to run query")]
+    RunQueryError(#[from] diesel::result::Error),
+    #[error("order_id: {0} doesn't exist")]
+    NoOrderIdError(Uuid)
+}
+
+impl Debug for UpdateOrderStatusError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self)?;
+        error_fmt_chain(f, &self.source())
+    }
+}
+
 pub async fn update_order_status(
     mut conn: DbConnection,
     status: OrderStatus,
     order_id: Uuid
-) -> Result<(), anyhow::Error> {
+) -> Result<(), UpdateOrderStatusError> {
 
     let res = spawn_blocking_with_tracing(move || {
-        conn.transaction::<(), anyhow::Error, _>(|conn| {
+        conn.transaction::<(), UpdateOrderStatusError, _>(|conn| {
             let status = match status {
                 OrderStatus::Pending => "pending",
                 OrderStatus::Shipped => "shipped",
@@ -265,18 +282,16 @@ pub async fn update_order_status(
             let affected_rows = diesel::update(orders::table)
                                     .filter(orders::order_id.eq(order_id))
                                     .set(orders::status.eq(status))
-                                    .execute(conn)
-                                    .context("Failed to update status")?;
+                                    .execute(conn)?;
 
             if affected_rows == 0 {
-                return Err(anyhow::anyhow!("order_id doesn't exist"));
+                return Err(UpdateOrderStatusError::NoOrderIdError(order_id))
             }
             
             Ok(())
         })
     })
-    .await
-    .context("Failed due to internal error")??;
+    .await??;
 
     Ok(res)
 }
