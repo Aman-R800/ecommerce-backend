@@ -4,7 +4,7 @@ use secrecy::{ExposeSecret, SecretString};
 
 use crate::telemetry::spawn_blocking_with_tracing;
 
-
+// Function to compute password hash
 pub fn compute_password_hash(password: SecretString) -> Result<SecretString, anyhow::Error>{
     let salt = SaltString::generate(&mut OsRng);
     let password_hash = Argon2::default()
@@ -15,6 +15,7 @@ pub fn compute_password_hash(password: SecretString) -> Result<SecretString, any
     Ok(SecretString::from(password_hash))
 }
 
+// Function to verify if password matches hash
 pub async fn verify_password(password: SecretString, hashed_password: String) -> Result<bool, anyhow::Error>{
     let verified = spawn_blocking_with_tracing(move ||{
         let argon2 = Argon2::default();

@@ -8,6 +8,7 @@ use thiserror::Error;
 
 use crate::{db_interaction::{insert_user_into_database, UserInsertError}, domain::user_email::UserEmail, email_client::EmailClient, startup::BaseUrl, utils::{error_fmt_chain, get_pooled_connection, DbPool}};
 
+// Route handler for user registration
 #[tracing::instrument(
     "User registration started",
     skip(pool, email_client, base_url)
@@ -57,6 +58,8 @@ pub async fn register(
     Ok(HttpResponse::Ok().finish())
 }
 
+
+// Struct representing registration form 
 #[derive(Deserialize, Debug)]
 pub struct RegistrationForm{
     email: String,
@@ -65,6 +68,7 @@ pub struct RegistrationForm{
     confirm_password: SecretString
 }
 
+// Error associated with error while registration
 #[derive(Error)]
 enum RegisterError{
     #[error("the password and confirm passwords don't match")]

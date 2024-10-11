@@ -9,6 +9,7 @@ use uuid::Uuid;
 use crate::{auth::extractors::IsAdmin, db_interaction::insert_inventory_items, models::InventoryItem, utils::{error_fmt_chain, get_pooled_connection, DbPool}};
 use crate::db_interaction::InventoryInsertError;
 
+// Struct representing post inventory form
 #[derive(Deserialize, Debug)]
 pub struct InventoryForm{
     name: String,
@@ -16,6 +17,7 @@ pub struct InventoryForm{
     price: f64
 }
 
+// Error response associated with posting inventory
 #[derive(Error)]
 pub enum PostInventoryError{
     #[error("Failed to insert item to inventory")]

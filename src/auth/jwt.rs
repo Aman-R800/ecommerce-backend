@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::{configuration::JWTSettings, models::User};
 
+// Struct for encoding and decoding JWTs
 #[derive(Clone)]
 pub struct Tokenizer{
     pub secret: SecretString,
@@ -13,6 +14,7 @@ pub struct Tokenizer{
 }
 
 impl Tokenizer {
+    // Create new tokenizer using jwt settings
     pub fn new(settings: &JWTSettings) -> Self {
         Self{
             secret: SecretString::new(settings.secret.clone().into()),
@@ -20,6 +22,7 @@ impl Tokenizer {
         }
     }
 
+    // Generate JWT token
     pub fn generate_key(&self, user: User) -> String{
         let expiry = Utc::now() + Duration::hours(self.expiry_hours as i64);
         let role = if user.is_admin{
@@ -43,6 +46,7 @@ impl Tokenizer {
         .unwrap()
     }
 
+    // Decode JWT token
     pub fn decode_key(&self, token: String) -> Option<Claims>{
         match jsonwebtoken::decode::<Claims>(
             &token,
@@ -55,6 +59,7 @@ impl Tokenizer {
     }
 }
 
+// Claims for JWT token for authentication
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims{
     pub sub: Uuid,

@@ -8,6 +8,7 @@ use serde::Deserialize;
 use crate::{auth::extractors::IsUser, db_interaction::{post_user_profile_info, PostUserProfileInfoError}, domain::{phone_number::PhoneNumberDomain, user_email::UserEmail}, models::UserProfileInfo, utils::{error_fmt_chain, DbPool}};
 use crate::db_interaction::get_user_profile_info;
 
+// Struct representing posting profile
 #[derive(Deserialize)]
 pub struct ProfileForm{
     pub name: Option<String>,
@@ -16,6 +17,7 @@ pub struct ProfileForm{
     pub address: Option<String>
 }
 
+// Error response associated with post profile route
 #[derive(thiserror::Error)]
 pub enum PostProfileError{
     #[error("{0}")]

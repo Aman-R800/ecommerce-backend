@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use phonenumber::country;
 
 
+// Wrapper struct defining domain for phone number
 #[derive(Debug, Clone)]
 pub struct PhoneNumberDomain(pub String);
 

@@ -10,6 +10,7 @@ use uuid::Uuid;
 use crate::{models::{ConfirmationMap, User, UserProfileInfo}, password::compute_password_hash, schema::users, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbConnection}};
 
 
+// Function to query user from email id
 pub async fn get_user_from_email(
     mut conn: DbConnection,
     email_string: String
@@ -36,6 +37,7 @@ pub async fn get_user_from_email(
     Ok(res)
 }
 
+// Error associated with inserting user to users table
 #[derive(Error)]
 pub enum UserInsertError{
     #[error("email field is not unique")]
@@ -149,6 +151,7 @@ pub async fn get_user_profile_info(
     .context("Failed due to threadpool error")??)
 }
 
+// Errors associated with inserting / updating user profile to database
 #[derive(thiserror::Error)]
 pub enum PostUserProfileInfoError{
     #[error("Failed due to threadpool error")]

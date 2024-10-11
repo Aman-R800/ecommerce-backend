@@ -6,6 +6,7 @@ use thiserror::Error;
 
 use crate::{auth::extractors::IsUser, db_interaction::get_user_profile_info, utils::{error_fmt_chain, DbPool}};
 
+// Error associated with getting user profile
 #[derive(Error)]
 pub enum GetProfileError {
     #[error("Unexpected Error Occured")]

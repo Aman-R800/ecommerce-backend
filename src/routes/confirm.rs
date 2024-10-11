@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::{db_interaction::{get_user_id_from_confirmation_id, set_status_confirm}, utils::DbPool};
 
+// Struct representing query parameter for confirmation endpoint
 #[derive(Deserialize, Debug)]
 pub struct Confirmation{
     id: Uuid

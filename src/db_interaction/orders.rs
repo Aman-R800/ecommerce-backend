@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::{models::{Order, OrderIntermediate, OrderItemModel}, routes::order::update::OrderStatus, schema::{order_items, orders}, telemetry::spawn_blocking_with_tracing, utils::{error_fmt_chain, DbConnection}};
 
+// Function to delete order from DB
 pub async fn delete_order_from_database(
     mut conn: DbConnection,
     order_id: Uuid
@@ -91,12 +92,14 @@ pub fn get_order_ids(
     Ok(result)
 }
 
+// Struct to represent order item within OrderWithItems
 #[derive(Serialize, Deserialize)]
 pub struct OrderItem {
     pub item_id: Uuid,
     pub quantity: i32,
 }
 
+// Struct to represent an order (with associated items)
 #[derive(Serialize, Deserialize)]
 pub struct OrderWithItems {
     pub order_id: Uuid,
@@ -151,6 +154,7 @@ pub fn get_order_with_items_by_id(conn: &mut DbConnection, target_order_id: Uuid
     }
 }
 
+// Error associated with creating orders and decrementing inventory stock
 #[derive(Error)]
 pub enum CreateOrderUpdateInventoryError{
     #[error("Tokio threadpool error occured")]
@@ -248,6 +252,7 @@ pub async fn create_order_and_update_inventory(
     Ok(ret)
 }
 
+// Error associated with updating order status
 #[derive(Error)]
 pub enum UpdateOrderStatusError{
     #[error("Tokio threadpool error occured")]
@@ -265,6 +270,7 @@ impl Debug for UpdateOrderStatusError {
     }
 }
 
+// Function to perform update order status operation
 pub async fn update_order_status(
     mut conn: DbConnection,
     status: OrderStatus,

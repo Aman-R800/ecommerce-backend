@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::user_email::UserEmail;
 
+// Client to interact with email service
 #[derive(Clone)]
 pub struct EmailClient {
     http_client: Client,
@@ -47,6 +48,7 @@ impl EmailClient {
         Ok(())
     }
 
+    // create new email client
     pub fn new(
         base_url: String,
         sender: UserEmail,

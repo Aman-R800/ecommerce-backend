@@ -1,5 +1,6 @@
 use validator::ValidateEmail;
 
+// Wrapper struct defining domain for email
 #[derive(Debug, Clone)]
 pub struct UserEmail(pub String);
 

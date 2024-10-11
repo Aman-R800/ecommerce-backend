@@ -3,6 +3,7 @@ use serde::Deserialize;
 
 use crate::{db_interaction::get_inventory_items, utils::{get_pooled_connection, DbPool}};
 
+// Struct representing query parameters for getting inventory
 #[derive(Deserialize, Debug)]
 pub struct GetInventoryQuery {
     page: i64,

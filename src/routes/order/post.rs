@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::{auth::extractors::IsUser, db_interaction::{create_order_and_update_inventory, CreateOrderUpdateInventoryError}, utils::{error_fmt_chain, get_pooled_connection, DbPool}};
 
+// struct representing order item to be ordered
 #[derive(Deserialize, Debug)]
 pub struct OrderItem{
     item_id: Uuid,

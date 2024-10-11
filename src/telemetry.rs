@@ -4,6 +4,7 @@ use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter, Registry};
 
 
+// Create tracing subscriber
 pub fn get_subscriber<Sink>(
     name: String,
     env_filter: String,
@@ -23,10 +24,12 @@ where
         .with(formatting_layer)
 }
 
+// Initialize tracing subscriber
 pub fn init_subscriber(subscriber: impl Subscriber + Sync + Send) {
     set_global_default(subscriber).expect("Failed to set subscriber");
 }
 
+// Run blocking code with tracing
 pub fn spawn_blocking_with_tracing<F, R>(f: F) -> JoinHandle<R>
 where
     F: FnOnce() -> R + Send + 'static,

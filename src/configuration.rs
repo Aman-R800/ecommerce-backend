@@ -4,6 +4,7 @@ use config::{Config, Environment, File};
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 
+// Struct to store application config and settings
 #[derive(Deserialize, Debug)]
 pub struct Settings{
     pub application: ApplicationSettings,
@@ -13,6 +14,7 @@ pub struct Settings{
 }
 
 impl Settings{
+    // Build Settings through configuration yamls and environment variables
     pub fn get() -> Self{
         let env_source = Environment::default()
                             .separator("__");
@@ -32,12 +34,14 @@ impl Settings{
     }
 }
 
+// Settings related to application
 #[derive(Deserialize, Debug)]
 pub struct ApplicationSettings{
     pub host: String,
     pub port: u16,
 }
 
+// Settings related to database
 #[derive(Deserialize, Debug)]
 pub struct DatabaseSettings{
     pub host: String,
@@ -47,6 +51,7 @@ pub struct DatabaseSettings{
     pub password: SecretString
 }
 
+// Settings related to email sending service
 #[derive(Deserialize, Debug)]
 pub struct EmailSettings{
     pub api_uri: String,
@@ -54,6 +59,7 @@ pub struct EmailSettings{
     pub key: String
 }
 
+// Settings related to JWT
 #[derive(Deserialize, Debug)]
 pub struct JWTSettings{
     pub secret: String,
@@ -61,6 +67,7 @@ pub struct JWTSettings{
 }
 
 impl DatabaseSettings{
+    // get database url
     pub fn get_database_url(&self) -> String{
         format!("postgres://{}:{}@{}:{}",
             self.username,
@@ -70,6 +77,7 @@ impl DatabaseSettings{
         )
     }
 
+    // get database url with table
     pub fn get_database_table_url(&self) -> String{
         let mut base = self.get_database_url();
         base.push_str(format!("/{}", self.name).as_str());

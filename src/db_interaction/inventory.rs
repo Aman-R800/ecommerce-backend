@@ -32,6 +32,7 @@ pub async fn get_inventory_items(
     Ok(res)
 }
 
+// Errors associated with inserting records to inventory table
 #[derive(Error)]
 pub enum InventoryInsertError{
     #[error("Failed due to threadpool error")]

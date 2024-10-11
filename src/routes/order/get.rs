@@ -10,12 +10,14 @@ use crate::auth::extractors::IsUser;
 use crate::db_interaction::get_order_with_items;
 use crate::utils::{error_fmt_chain, get_pooled_connection, DbPool};
 
+// Struct representing query parameters for get order
 #[derive(Deserialize, Debug)]
 pub struct GetOrderQuery{
     pub page: i64,
     pub limit: i64
 }
 
+// Error response associated with get order
 #[derive(Error)]
 pub enum GetOrderError{
     #[error("Failed due to internal server error")]

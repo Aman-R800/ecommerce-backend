@@ -5,13 +5,14 @@ use serde_json::json;
 
 use crate::{auth::jwt::Tokenizer, db_interaction::get_user_from_email, domain::user_email::UserEmail, models::User, password::verify_password, utils::{get_pooled_connection, DbPool}};
 
-
+// Struct representing login form
 #[derive(Deserialize, Debug)]
 pub struct LoginForm{
     pub email: String,
     pub password: SecretString
 }
 
+// Login route handler
 #[tracing::instrument(
     "Logging in user",
     skip(pool, tokenizer)

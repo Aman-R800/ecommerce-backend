@@ -8,9 +8,11 @@ use tracing_actix_web::TracingLogger;
 
 use crate::{auth::jwt::Tokenizer, configuration::Settings, domain::user_email::UserEmail, email_client::EmailClient, routes::{authentication::{login::login, register::register}, confirm::confirm, health_check, inventory::{get_inventory, post_inventory}, order::{delete_order, get_order, post_order, update_order}, profile::{get_profile, post_profile}}};
 
+// Base URL of application
 #[derive(Clone)]
 pub struct BaseUrl(pub String);
 
+// Application related data and server
 pub struct Application{
     pub host: String,
     pub port: u16,
@@ -18,6 +20,7 @@ pub struct Application{
 }
 
 impl Application {
+    // Create new application from server
     pub async fn new(settings: Settings) -> Result<Self, anyhow::Error>{
         let listener = TcpListener::bind(format!("{}:{}",
                 settings.application.host,

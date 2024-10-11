@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::{auth::extractors::IsUser, db_interaction::delete_order_from_database, utils::{get_pooled_connection, DbPool}};
 
+// struct representing json body for deleting order
 #[derive(Deserialize, Debug)]
 pub struct DeleteOrderJson{
     pub order_id: Uuid

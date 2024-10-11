@@ -4,7 +4,10 @@ use uuid::Uuid;
 
 use super::jwt::{Tokenizer, UserRole};
 
+// Extractor for admin role
 pub struct IsAdmin(pub Uuid);
+
+// Extractor for user role
 pub struct IsUser(pub Uuid, pub bool);
 
 impl FromRequest for IsAdmin {

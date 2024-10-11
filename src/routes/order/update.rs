@@ -8,12 +8,14 @@ use uuid::Uuid;
 
 use crate::{auth::extractors::IsAdmin, db_interaction::{update_order_status, UpdateOrderStatusError}, utils::{error_fmt_chain, get_pooled_connection, DbPool}};
 
+// Struct representing put order status form
 #[derive(Deserialize, Debug)]
 pub struct UpdateOrderStatusForm{
     pub order_id: Uuid,
     pub status: OrderStatus
 }
 
+// Enum representing updated order status
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum OrderStatus{
@@ -21,6 +23,8 @@ pub enum OrderStatus{
     Shipped,
     Delivered
 }
+
+// Error response associated with order status update route
 #[derive(Error)]
 pub enum UpdateOrderError {
     #[error("Failed due to internal server error")]
