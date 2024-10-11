@@ -15,6 +15,7 @@ use wiremock::{matchers::{header_exists, path}, Mock, MockServer, ResponseTempla
 
 use crate::registration::ReceiveEmailRequest;
 
+// Single time global initialization of tracing
 static LOGGER_INSTANCE: Lazy<()> = Lazy::new(|| {
     let log_level = "info".to_string();
     let name = "ecommerce-test".to_string();
@@ -30,8 +31,10 @@ static LOGGER_INSTANCE: Lazy<()> = Lazy::new(|| {
     ()
 });
 
+// Migrations to be done on logical database
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
+// Running migrations on logical database
 fn run_migrations(connection: &mut impl MigrationHarness<Pg>) 
     -> Result<(), Box<dyn Error + Send + Sync + 'static>> 
 {
@@ -39,6 +42,7 @@ fn run_migrations(connection: &mut impl MigrationHarness<Pg>)
     Ok(())
 }
 
+// User created for test suite
 pub struct TestUser{
     pub user_id: Uuid,
     pub email: String,
@@ -46,6 +50,7 @@ pub struct TestUser{
 }
 
 impl TestUser {
+    // generate user
     fn generate(admin: bool, pool: &DbPool) -> TestUser{
         use ecommerce::schema::users;
 
@@ -81,6 +86,7 @@ impl TestUser {
     }
 }
 
+// Struct containing test app data
 pub struct TestApp{
     pub host: String,
     pub port: u16,
@@ -92,6 +98,7 @@ pub struct TestApp{
 }
 
 impl TestApp {
+    // API request to delete orders as admin returning response
     pub async fn delete_orders_admin<Body>(&self, body: Body, access_token: &String) -> reqwest::Response
     where 
         Body: Serialize
@@ -107,6 +114,7 @@ impl TestApp {
         .unwrap()
     }
 
+    // API request to update orders status returning response
     pub async fn put_orders<Body>(&self, body: Body, access_token: &String) -> reqwest::Response
     where 
         Body: Serialize
@@ -122,6 +130,7 @@ impl TestApp {
         .unwrap()
     }
 
+    // API request to get order request returning request builder
     pub async fn get_orders_request(&self, page: i64, limit: i64, access_token: &String) -> reqwest::RequestBuilder{
         self.api_client.get(format!("http://{}:{}/order?page={}&limit={}",
             self.host,
@@ -132,6 +141,7 @@ impl TestApp {
         .bearer_auth(access_token)
     }
 
+    // API request to get order request returning response
     pub async fn get_orders(&self, page: i64, limit: i64, access_token: &String) -> reqwest::Response{
         self.get_orders_request(page, limit, access_token)
             .await
@@ -140,6 +150,7 @@ impl TestApp {
             .unwrap()
     }
 
+    // API request to get inventory returning response
     pub async fn get_inventory(&self, page: i64, limit: i64) -> reqwest::Response{
         self.api_client.get(format!("http://{}:{}/inventory?page={}&limit={}",
             self.host,
@@ -151,7 +162,8 @@ impl TestApp {
         .await
         .unwrap()
     }
-
+    
+    // Function to perform admin user login
     pub async fn login_admin(&self) -> String {
         let login_request = serde_json::json!({
             "email": self.admin.email,
@@ -168,6 +180,7 @@ impl TestApp {
         return login_response_json.access_token
     }
     
+    // API request to post inventory returning response
     pub async fn post_inventory<Body>(&self, item: Body, access_token: String) -> reqwest::Response
     where 
         Body: Serialize
@@ -184,7 +197,8 @@ impl TestApp {
         .await
         .unwrap()
     }
-
+    
+    // Create logical database
     fn create_db(settings: &DatabaseSettings) -> DbPool{
         let mut connection = PgConnection::establish(&settings.get_database_url())
                                 .expect("Failed to connect to postgres database");
@@ -204,10 +218,12 @@ impl TestApp {
         pool
     }
 
+    // get app url
     pub fn get_app_url(&self) -> String{
         format!("http://{}:{}", self.host, self.port)
     }
 
+    // Spawn app
     pub async fn spawn_app() -> TestApp{
         Lazy::force(&LOGGER_INSTANCE);
 
@@ -248,6 +264,7 @@ impl TestApp {
         }
     }
 
+    // Get confirmation link from confirmation email
     pub fn get_confirmation_link(&self, text: &str) -> String{
         let links: Vec<_> = linkify::LinkFinder::new()
                     .links(text)
@@ -265,7 +282,7 @@ impl TestApp {
 
 }
 
-
+// Create user and login
 pub async fn create_user_and_login(app: &TestApp) -> String{
     let body = serde_json::json!({
         "email" : "amanrao032@gmail.com",
